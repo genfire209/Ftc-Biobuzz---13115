@@ -1,15 +1,13 @@
 package org.firstinspires.ftc.teamcode.vision;
 
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.teamcode.field.FieldConstants;
-import org.firstinspires.ftc.vision.VisionPortal;
-import org.firstinspires.ftc.vision.apriltag.AprilTagClusterDetection;
-import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
-import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
-
-import java.util.List;
 
 // Reads live distance to the HIVE directly from its AprilTag cluster
 // (mounted on the CELL itself, manual Section 9.9), so shot power is based
@@ -17,57 +15,67 @@ import java.util.List;
 // coordinate -- immune to the manual's stated +/-1in field-to-field
 // tolerance and to Pinpoint drift. This is the primary distance source;
 // HiveShootAutoBase falls back to odometry-based
-// FieldConstants.distanceToHive() whenever no cluster is visible that
+// FieldConstants.distanceToHive() whenever no target tag is visible that
 // cycle.
 //
-// This season's SDK (12.0.0) detects the HIVE's 4-tag stickers as a single
-// fused AprilTagClusterDetection (not 4 separate single-tag detections),
-// via AprilTagGameDatabase's built-in BIOBUZZ tag library, identified by
-// name -- "RED SCORING" / "BLUE SCORING" -- rather than by raw tag ID.
+// Limelight does its own on-device AprilTag detection and reports raw
+// per-tag fiducial results (unlike a webcam through the FTC SDK's
+// VisionPortal/AprilTagProcessor, which fuses the HIVE's 4-tag sticker
+// into one AprilTagClusterDetection) -- so the HIVE's scoring cluster is
+// identified here by its member tag IDs directly (manual Figure 9-17):
+// 30-33 = RED SCORING, 42-45 = BLUE SCORING.
 public class HiveRangeFinder {
 
-    // TODO: DECIDE -- webcam device name, must match Driver Hub config.
-    private static final String WEBCAM_NAME = "webcam";
+    // TODO: DECIDE -- Limelight device name, must match Driver Hub config.
+    private static final String LIMELIGHT_NAME = "limelight";
 
-    private static final String RED_SCORING_CLUSTER_NAME = "RED SCORING";
-    private static final String BLUE_SCORING_CLUSTER_NAME = "BLUE SCORING";
+    // TODO: DECIDE -- which pipeline slot on the Limelight (configured via
+    // its own web UI) has AprilTag detection set up, if not 0.
+    private static final int APRILTAG_PIPELINE_INDEX = 0;
 
-    private AprilTagProcessor aprilTag;
-    private VisionPortal visionPortal;
-    private String targetClusterName;
+    private static final int[] RED_SCORING_TAG_IDS = {30, 31, 32, 33};
+    private static final int[] BLUE_SCORING_TAG_IDS = {42, 43, 44, 45};
+
+    private Limelight3A limelight;
+    private int[] targetIds;
 
     public void init(HardwareMap hw, FieldConstants.Alliance alliance) {
-        targetClusterName = (alliance == FieldConstants.Alliance.RED)
-                ? RED_SCORING_CLUSTER_NAME
-                : BLUE_SCORING_CLUSTER_NAME;
+        targetIds = (alliance == FieldConstants.Alliance.RED) ? RED_SCORING_TAG_IDS : BLUE_SCORING_TAG_IDS;
 
-        // easyCreateWithDefaults() pulls in AprilTagGameDatabase's current
-        // (BIOBUZZ) tag library automatically, which already defines the
-        // RED SCORING / BLUE SCORING clusters.
-        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
-        visionPortal = VisionPortal.easyCreateWithDefaults(
-                hw.get(WebcamName.class, WEBCAM_NAME), aprilTag);
+        limelight = hw.get(Limelight3A.class, LIMELIGHT_NAME);
+        limelight.pipelineSwitch(APRILTAG_PIPELINE_INDEX);
+        limelight.start();
     }
 
-    // Live distance (inches) to the HIVE's own "<alliance> SCORING"
-    // AprilTag cluster, or null if it isn't visible this cycle.
+    // Live distance (inches) to the HIVE's scoring tags, averaged across
+    // any matching tag IDs detected this cycle (reduces per-tag pose
+    // noise), or null if none of the target IDs are visible right now.
     public Double getRangeIn() {
-        List<AprilTagDetection> detections = aprilTag.getDetections();
+        LLResult result = limelight.getLatestResult();
+        if (result == null || !result.isValid()) return null;
 
-        for (AprilTagDetection detection : detections) {
-            if (!(detection instanceof AprilTagClusterDetection)) continue;
+        double sum = 0.0;
+        int count = 0;
 
-            AprilTagClusterDetection cluster = (AprilTagClusterDetection) detection;
-            if (cluster.metadata == null) continue;
-            if (!targetClusterName.equals(cluster.metadata.shortName)) continue;
+        for (LLResultTypes.FiducialResult fiducial : result.getFiducialResults()) {
+            if (!isTargetId(fiducial.getFiducialId())) continue;
 
-            return cluster.ftcPose.range;
+            Position pos = fiducial.getTargetPoseCameraSpace().getPosition().toUnit(DistanceUnit.INCH);
+            sum += Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+            count++;
         }
 
-        return null;
+        return (count == 0) ? null : sum / count;
     }
 
     public void close() {
-        if (visionPortal != null) visionPortal.close();
+        if (limelight != null) limelight.stop();
+    }
+
+    private boolean isTargetId(int id) {
+        for (int targetId : targetIds) {
+            if (targetId == id) return true;
+        }
+        return false;
     }
 }
