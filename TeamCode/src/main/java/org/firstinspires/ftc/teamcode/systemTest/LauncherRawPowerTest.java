@@ -14,7 +14,7 @@ public class LauncherRawPowerTest extends LinearOpMode {
     // Physically the launcher motor, but the Driver Hub config still has
     // it named front_right_drive (port 1 repurposed, no expansion hub).
     private static final String MOTOR_NAME = "front_right_drive";
-    private static final double MOTOR_POWER = 0.6;
+    private static final double MOTOR_POWER = 0.4;
 
     private DcMotor motor;
 
