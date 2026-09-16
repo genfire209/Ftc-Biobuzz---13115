@@ -22,9 +22,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 // systemTest/WheelDirectionTest (isolated single-wheel test); do not
 // change them without re-running that test on this robot.
 //
-// Motor controller port assignments (Control Hub), for reference --
-// port number has NO bearing on which direction a motor needs; it's
-// purely which physical connector the cable is plugged into:
+// Robot was rewired/renamed on the Driver Hub after the port table below
+// was recorded -- it's now stale and kept only as history, not fact:
 //   port 0: back_right_drive  (default FORWARD)
 //   port 1: front_right_drive (REVERSE)
 //   port 2: front_left_drive  (REVERSE)
@@ -52,11 +51,10 @@ public class BasicTeleOp extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, BACK_LEFT_NAME);
         backRight = hardwareMap.get(DcMotor.class, BACK_RIGHT_NAME);
 
-        // Confirmed via systemTest/WheelDirectionTest (isolated single-
-        // wheel test): frontLeft/frontRight/backLeft need REVERSE,
-        // backRight stays at default (FORWARD).
+        // Re-confirmed via systemTest/WheelDirectionTest after rewiring:
+        // frontLeft/backLeft need REVERSE, frontRight/backRight stay at
+        // default (FORWARD).
         frontLeft.setDirection(DcMotor.Direction.REVERSE);
-        frontRight.setDirection(DcMotor.Direction.REVERSE);
         backLeft.setDirection(DcMotor.Direction.REVERSE);
 
         for (DcMotor motor : new DcMotor[]{frontLeft, frontRight, backLeft, backRight}) {
