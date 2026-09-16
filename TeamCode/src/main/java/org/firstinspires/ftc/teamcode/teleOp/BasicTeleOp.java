@@ -29,15 +29,12 @@ public class BasicTeleOp extends LinearOpMode {
 
         // Right side is mounted mirrored, so it needs to be reversed for
         // positive power to drive the robot forward on both sides.
-        // frontLeft/backRight also confirmed reversed on the physical
-        // robot. IMPORTANT: diagnose wheel direction with pure
-        // forward/backward stick only, via systemTest/WheelDirectionTest
-        // -- during strafing, diagonal pairs (frontLeft/backRight vs.
-        // frontRight/backLeft) are SUPPOSED to spin opposite directions,
-        // which is easy to mistake for a reversed wheel.
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        // Confirmed via systemTest/WheelDirectionTest (isolated single-
+        // wheel test, immune to mecanum diagonal-pair confusion during
+        // strafing): frontLeft and backRight must stay at default
+        // (FORWARD), not REVERSE -- do not flip them again without
+        // re-running that isolated test.
         frontRight.setDirection(DcMotor.Direction.REVERSE);
-        backRight.setDirection(DcMotor.Direction.REVERSE);
 
         for (DcMotor motor : new DcMotor[]{frontLeft, frontRight, backLeft, backRight}) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
