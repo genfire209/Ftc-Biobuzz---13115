@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.field.FieldConstants;
 import org.firstinspires.ftc.teamcode.hardware.Launcher;
 import org.firstinspires.ftc.teamcode.hardware.ShotCalculator;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.vision.HiveRangeFinder;
 
 // Shared autonomous state machine: drive to a firing position via Pedro
 // Pathing, spin the flywheel to a live distance-computed RPM, fire the 4
@@ -19,7 +20,13 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 // run every loop() no matter what state the fire sequence is in), then
 // drive to LEAVE/PARK.
 //
-// Subclasses set startPose/firingPose/parkPose/hiveTarget and are
+// Distance source: the HIVE's own AprilTag cluster (HiveRangeFinder) is
+// primary -- it measures the actual physical distance to the target,
+// immune to the manual's stated +/-1in field-to-field tolerance and to
+// Pinpoint drift. Pedro odometry (FieldConstants.distanceToHive) is the
+// fallback whenever no tag is visible that cycle.
+//
+// Subclasses set startPose/firingPose/parkPose/hiveTarget/alliance and are
 // @Autonomous-annotated, no-arg-constructor menu entries -- see RedAuto.java
 // / BlueAuto.java for examples. Concrete starting-tile poses below are
 // placeholders (TODO: MEASURE) since AUTO starting position(s) aren't
@@ -36,9 +43,11 @@ public abstract class HiveShootAutoBase extends OpMode {
     protected Pose firingPose;
     protected Pose parkPose;
     protected Pose hiveTarget;
+    protected FieldConstants.Alliance alliance;
 
     private Follower follower;
     private final Launcher launcher = new Launcher();
+    private final HiveRangeFinder rangeFinder = new HiveRangeFinder();
     private DcMotor feeder;
 
     private PathChain toFiringPosition;
@@ -66,6 +75,7 @@ public abstract class HiveShootAutoBase extends OpMode {
                 .build();
 
         launcher.init(hardwareMap);
+        rangeFinder.init(hardwareMap, alliance);
         feeder = hardwareMap.get(DcMotor.class, FEEDER_MOTOR_NAME);
     }
 
@@ -84,10 +94,12 @@ public abstract class HiveShootAutoBase extends OpMode {
         autonomousPathUpdate();
         updateFireSequence();
 
+        Double tagRangeIn = rangeFinder.getRangeIn();
         telemetry.addData("path state", pathState);
         telemetry.addData("fire state", fireState);
-        telemetry.addData("distance to hive", FieldConstants.distanceToHive(follower.getPose(), hiveTarget));
-        telemetry.addData("launcher target rpm", "%.0f", launcherTargetRpm());
+        telemetry.addData("distance source", (tagRangeIn != null) ? "AprilTag" : "odometry (no tag seen)");
+        telemetry.addData("distance to hive (in)", "%.1f", distanceToHiveIn(tagRangeIn));
+        telemetry.addData("launcher target rpm", "%.0f", launcherTargetRpm(tagRangeIn));
         telemetry.addData("launcher measured rpm", "%.0f", launcher.getMeasuredRpm());
         telemetry.update();
     }
@@ -96,6 +108,7 @@ public abstract class HiveShootAutoBase extends OpMode {
     public void stop() {
         launcher.stop();
         feeder.setPower(0);
+        rangeFinder.close();
     }
 
     private void autonomousPathUpdate() {
@@ -125,7 +138,7 @@ public abstract class HiveShootAutoBase extends OpMode {
     private void updateFireSequence() {
         switch (fireState) {
             case SPIN_UP:
-                launcher.setTargetRpm(launcherTargetRpm());
+                launcher.setTargetRpm(launcherTargetRpm(rangeFinder.getRangeIn()));
                 if (launcher.isReadyToFire()) {
                     feeder.setPower(FEEDER_POWER);
                     fireTimer.resetTimer();
@@ -145,9 +158,15 @@ public abstract class HiveShootAutoBase extends OpMode {
         }
     }
 
-    private double launcherTargetRpm() {
-        double distanceIn = FieldConstants.distanceToHive(follower.getPose(), hiveTarget);
-        return ShotCalculator.getTargetRpm(distanceIn);
+    // Prefers the AprilTag's measured range to the HIVE (actual physical
+    // distance to the target); falls back to Pedro odometry distance when
+    // no tag is visible this cycle.
+    private double distanceToHiveIn(Double tagRangeIn) {
+        return (tagRangeIn != null) ? tagRangeIn : FieldConstants.distanceToHive(follower.getPose(), hiveTarget);
+    }
+
+    private double launcherTargetRpm(Double tagRangeIn) {
+        return ShotCalculator.getTargetRpm(distanceToHiveIn(tagRangeIn));
     }
 
     private void setPathState(int state) {

@@ -15,5 +15,6 @@ public class BlueAuto extends HiveShootAutoBase {
         firingPose = new Pose(120, 24, Math.toRadians(180));
         parkPose = new Pose(132, 12, Math.toRadians(180));
         hiveTarget = FieldConstants.BLUE_HIVE_TARGET;
+        alliance = FieldConstants.Alliance.BLUE;
     }
 }

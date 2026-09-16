@@ -15,5 +15,6 @@ public class RedAuto extends HiveShootAutoBase {
         firingPose = new Pose(24, 24, 0);
         parkPose = new Pose(12, 12, 0);
         hiveTarget = FieldConstants.RED_HIVE_TARGET;
+        alliance = FieldConstants.Alliance.RED;
     }
 }
