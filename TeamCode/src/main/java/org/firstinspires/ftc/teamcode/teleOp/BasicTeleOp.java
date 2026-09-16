@@ -21,9 +21,6 @@ public class BasicTeleOp extends LinearOpMode {
     private static final String BACK_LEFT_NAME = "back_left_drive";
     private static final String BACK_RIGHT_NAME = "back_right_drive";
 
-    private static final double NORMAL_SPEED = 1.0;
-    private static final double SLOW_SPEED = 0.4;
-
     private DcMotor frontLeft, frontRight, backLeft, backRight;
 
     @Override
@@ -42,7 +39,6 @@ public class BasicTeleOp extends LinearOpMode {
         }
 
         telemetry.addLine("Ready. Left stick = drive/strafe, right stick X = turn.");
-        telemetry.addLine("Right bumper = slow mode.");
         telemetry.update();
 
         waitForStart();
@@ -52,8 +48,6 @@ public class BasicTeleOp extends LinearOpMode {
             double strafe = gamepad1.left_stick_x;
             double turn = gamepad1.right_stick_x;
 
-            double speedScale = gamepad1.right_bumper ? SLOW_SPEED : NORMAL_SPEED;
-
             double fl = drive + strafe + turn;
             double fr = drive - strafe - turn;
             double bl = drive - strafe + turn;
@@ -61,15 +55,14 @@ public class BasicTeleOp extends LinearOpMode {
 
             double max = Math.max(1.0, Math.max(Math.max(Math.abs(fl), Math.abs(fr)), Math.max(Math.abs(bl), Math.abs(br))));
 
-            frontLeft.setPower((fl / max) * speedScale);
-            frontRight.setPower((fr / max) * speedScale);
-            backLeft.setPower((bl / max) * speedScale);
-            backRight.setPower((br / max) * speedScale);
+            frontLeft.setPower(fl / max);
+            frontRight.setPower(fr / max);
+            backLeft.setPower(bl / max);
+            backRight.setPower(br / max);
 
             telemetry.addData("Drive", drive);
             telemetry.addData("Strafe", strafe);
             telemetry.addData("Turn", turn);
-            telemetry.addData("Slow mode", gamepad1.right_bumper);
             telemetry.update();
         }
 
