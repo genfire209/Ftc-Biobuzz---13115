@@ -27,14 +27,12 @@ public class BasicTeleOp extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, BACK_LEFT_NAME);
         backRight = hardwareMap.get(DcMotor.class, BACK_RIGHT_NAME);
 
-        // Right side is mounted mirrored, so it needs to be reversed for
-        // positive power to drive the robot forward on both sides.
         // Confirmed via systemTest/WheelDirectionTest (isolated single-
-        // wheel test, immune to mecanum diagonal-pair confusion during
-        // strafing): frontLeft and backRight must stay at default
-        // (FORWARD), not REVERSE -- do not flip them again without
-        // re-running that isolated test.
+        // wheel test): frontLeft/frontRight/backLeft need REVERSE,
+        // backRight stays at default (FORWARD).
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.REVERSE);
 
         for (DcMotor motor : new DcMotor[]{frontLeft, frontRight, backLeft, backRight}) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

@@ -32,7 +32,9 @@ public class WheelDirectionTest extends LinearOpMode {
         // Apply the SAME direction settings as BasicTeleOp, so this test
         // reflects what driving will actually do -- if a wheel still
         // looks wrong here, fix it in both files together.
+        frontLeft.setDirection(DcMotor.Direction.REVERSE);
         frontRight.setDirection(DcMotor.Direction.REVERSE);
+        backLeft.setDirection(DcMotor.Direction.REVERSE);
 
         for (DcMotor motor : new DcMotor[]{frontLeft, frontRight, backLeft, backRight}) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
