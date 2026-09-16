@@ -29,11 +29,9 @@ public class BasicTeleOp extends LinearOpMode {
 
         // Right side is mounted mirrored, so it needs to be reversed for
         // positive power to drive the robot forward on both sides.
-        // frontLeft is also reversed -- confirmed spinning backward on
-        // the physical robot.
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
+        // frontLeft/backRight confirmed correct at default (FORWARD) on
+        // the physical robot -- do not reverse them.
         frontRight.setDirection(DcMotor.Direction.REVERSE);
-        backRight.setDirection(DcMotor.Direction.REVERSE);
 
         for (DcMotor motor : new DcMotor[]{frontLeft, frontRight, backLeft, backRight}) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
