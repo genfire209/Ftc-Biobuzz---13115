@@ -43,9 +43,13 @@ public class AprilTagFollowTest extends LinearOpMode {
     // nothing to do with the tag actually being gone.
     private static final double TAG_LOSS_GRACE_S = 0.3;
 
-    // Logged to logcat/matchlogs every loop so behavior can be analyzed
-    // after a run instead of only guessed at from what the driver saw.
+    // Logged to logcat/matchlogs so behavior can be analyzed after a run
+    // instead of only guessed at from what the driver saw. Throttled --
+    // logging every single loop (~50Hz) filled logcat's ring buffer fast
+    // enough that early parts of a run got evicted before STOP ever
+    // wrote the match log out.
     private static final String LOG_TAG = "AprilTagFollow";
+    private static final double LOG_INTERVAL_S = 0.1;
 
     private DcMotor frontLeft, frontRight, backLeft, backRight;
     private Limelight3A limelight;
@@ -78,6 +82,7 @@ public class AprilTagFollowTest extends LinearOpMode {
         double lastDrive = 0;
         double lastTurn = 0;
         double timeSinceSeenS = 0;
+        double timeSinceLogS = 0;
         long lastLoopNs = System.nanoTime();
 
         while (opModeIsActive()) {
@@ -92,7 +97,13 @@ public class AprilTagFollowTest extends LinearOpMode {
             double tx = 0;
             double distanceIn = 0;
 
-            if (result != null && result.isValid()) {
+            // Checking the fiducial list directly instead of gating on
+            // result.isValid() first -- isValid() reflects a "v" flag in
+            // the Limelight's raw JSON whose exact semantics weren't
+            // reliable in testing (tags visible on the Limelight's own
+            // dashboard were not being read back here). The fiducial
+            // list is what we actually care about.
+            if (result != null) {
                 List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
                 if (!fiducials.isEmpty()) {
                     LLResultTypes.FiducialResult tag = fiducials.get(0);
@@ -143,8 +154,12 @@ public class AprilTagFollowTest extends LinearOpMode {
             backLeft.setPower(bl / max);
             backRight.setPower(br / max);
 
-            RobotLog.dd(LOG_TAG, "seesTag=%b tx=%.2f dist=%.1f turn=%.3f drive=%.3f fl=%.3f fr=%.3f bl=%.3f br=%.3f",
-                    seesTag, tx, distanceIn, turn, drive, fl / max, fr / max, bl / max, br / max);
+            timeSinceLogS += dt;
+            if (timeSinceLogS >= LOG_INTERVAL_S) {
+                timeSinceLogS = 0;
+                RobotLog.dd(LOG_TAG, "seesTag=%b tx=%.2f dist=%.1f turn=%.3f drive=%.3f fl=%.3f fr=%.3f bl=%.3f br=%.3f",
+                        seesTag, tx, distanceIn, turn, drive, fl / max, fr / max, bl / max, br / max);
+            }
 
             telemetry.addData("Tag visible", seesTag);
             telemetry.update();
