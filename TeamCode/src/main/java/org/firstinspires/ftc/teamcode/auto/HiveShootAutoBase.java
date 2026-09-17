@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.field.FieldConstants;
 import org.firstinspires.ftc.teamcode.hardware.Launcher;
 import org.firstinspires.ftc.teamcode.hardware.ShotCalculator;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.vision.HiveAimer;
 import org.firstinspires.ftc.teamcode.vision.HiveRangeFinder;
 
 // Shared autonomous state machine: drive to a firing position via Pedro
@@ -48,6 +49,7 @@ public abstract class HiveShootAutoBase extends OpMode {
     private Follower follower;
     private final Launcher launcher = new Launcher();
     private final HiveRangeFinder rangeFinder = new HiveRangeFinder();
+    private final HiveAimer aimer = new HiveAimer();
     private DcMotor feeder;
 
     private PathChain toFiringPosition;
@@ -76,6 +78,7 @@ public abstract class HiveShootAutoBase extends OpMode {
 
         launcher.init(hardwareMap);
         rangeFinder.init(hardwareMap, alliance);
+        aimer.init(hardwareMap);
         feeder = hardwareMap.get(DcMotor.class, FEEDER_MOTOR_NAME);
     }
 
@@ -90,6 +93,7 @@ public abstract class HiveShootAutoBase extends OpMode {
         // blocking wait, or the robot stops moving/spinning up mid-shot.
         follower.update();
         launcher.update();
+        aimer.update(follower.getPose(), hiveTarget);
 
         autonomousPathUpdate();
         updateFireSequence();
@@ -109,6 +113,7 @@ public abstract class HiveShootAutoBase extends OpMode {
         launcher.stop();
         feeder.setPower(0);
         rangeFinder.close();
+        aimer.stop();
     }
 
     private void autonomousPathUpdate() {
