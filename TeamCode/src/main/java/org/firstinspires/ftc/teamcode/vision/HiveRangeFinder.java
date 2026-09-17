@@ -24,10 +24,29 @@ import org.firstinspires.ftc.teamcode.field.FieldConstants;
 // into one AprilTagClusterDetection) -- so the HIVE's scoring cluster is
 // identified here by its member tag IDs directly (manual Figure 9-17):
 // 30-33 = RED SCORING, 42-45 = BLUE SCORING.
+//
+// VISIBILITY: the manual states each cluster is mounted "on the bottom
+// of a CELL facing downward towards the TILES" (Section 9.9), not facing
+// outward toward the field like last season's goal tags -- a fixed-mount
+// camera in a normal shooting position likely can't see it. The team is
+// building a pan/tilt mount for the Limelight to address this (aim the
+// camera up under the CELL to find the tag). Note this doesn't require
+// any change to the range math here: getRangeIn()'s 3D distance
+// (sqrt(x^2+y^2+z^2) in camera space) is orientation-independent --
+// panning/tilting only affects whether the tag is in frame, not the
+// computed range once it's detected. See hardware/PanTilt.java (once
+// built) for the aiming control; this class stays a pure "read whatever
+// the camera currently sees" reader.
+//
+// Also note: the tag is physically offset from the actual scoring
+// opening (which is higher up, at the cell entrance) -- getRangeIn()
+// returns raw range to the tag itself, not a corrected distance to the
+// entry point. Left uncorrected for now since the offset is small
+// relative to typical shot distance; revisit if shots consistently
+// under/over-shoot near the tag-measurement boundary.
 public class HiveRangeFinder {
 
-    // TODO: DECIDE -- Limelight device name, must match Driver Hub config.
-    private static final String LIMELIGHT_NAME = "limelight";
+    private static final String LIMELIGHT_NAME = "Limelight-13115";
 
     // TODO: DECIDE -- which pipeline slot on the Limelight (configured via
     // its own web UI) has AprilTag detection set up, if not 0.
