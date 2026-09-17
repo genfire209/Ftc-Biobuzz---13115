@@ -14,11 +14,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import java.util.List;
 
 // Bring-up test, not the competition auto: if the Limelight sees ANY
-// AprilTag, drive toward it (simple proportional steering to keep it
-// centered, forward power capped at TEST_POWER) and stop once within
-// STOP_DISTANCE_IN. No tag visible -> robot holds still. Runs as a
-// TeleOp (not @Autonomous) so STOP is always one button away and there's
-// no 30s timeout while testing.
+// AprilTag, drive toward it (proportional steering to keep it centered,
+// proportional braking as it approaches STOP_DISTANCE_IN) and hold once
+// close. No tag visible for longer than TAG_LOSS_GRACE_S -> robot holds
+// still. Runs as a TeleOp (not @Autonomous) so STOP is always one button
+// away and there's no 30s timeout while testing.
 @TeleOp(name = "AprilTag Follow Test", group = "systemTest")
 public class AprilTagFollowTest extends LinearOpMode {
 
@@ -27,7 +27,20 @@ public class AprilTagFollowTest extends LinearOpMode {
 
     private static final double TEST_POWER = 0.7;
     private static final double STOP_DISTANCE_IN = 12.0;
-    private static final double TURN_KP = 0.03; // power per degree of horizontal error
+    private static final double DRIVE_KP = 0.05; // power per inch of remaining distance
+
+    // TODO: VERIFY -- sign depends on which way the Limelight is
+    // physically mounted (right-side-up vs. rotated/flipped). If the
+    // robot turns AWAY from a centered tag instead of toward it, that's
+    // an inverted sign here -- flip it. Confirmed working sign is
+    // negative for this robot's mount.
+    private static final double TURN_KP = -0.03; // power per degree of horizontal error
+
+    // Don't slam to a dead stop on a single dropped detection frame --
+    // hold the last commanded drive/turn briefly, since camera shake
+    // from the robot's own motion can cause momentary tag-loss that has
+    // nothing to do with the tag actually being gone.
+    private static final double TAG_LOSS_GRACE_S = 0.3;
 
     private DcMotor frontLeft, frontRight, backLeft, backRight;
     private Limelight3A limelight;
@@ -57,28 +70,57 @@ public class AprilTagFollowTest extends LinearOpMode {
 
         waitForStart();
 
+        double lastDrive = 0;
+        double lastTurn = 0;
+        double timeSinceSeenS = 0;
+        long lastLoopNs = System.nanoTime();
+
         while (opModeIsActive()) {
+            long now = System.nanoTime();
+            double dt = (now - lastLoopNs) / 1e9;
+            lastLoopNs = now;
+
             LLResult result = limelight.getLatestResult();
+            boolean seesTag = false;
             double drive = 0;
             double turn = 0;
-            boolean seesTag = false;
 
             if (result != null && result.isValid()) {
                 List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
                 if (!fiducials.isEmpty()) {
                     LLResultTypes.FiducialResult tag = fiducials.get(0);
                     seesTag = true;
+                    timeSinceSeenS = 0;
 
                     double tx = tag.getTargetXDegrees();
                     Position pos = tag.getTargetPoseCameraSpace().getPosition().toUnit(DistanceUnit.INCH);
                     double distanceIn = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
 
                     turn = Range.clip(tx * TURN_KP, -TEST_POWER, TEST_POWER);
-                    drive = (distanceIn > STOP_DISTANCE_IN) ? TEST_POWER : 0;
+                    // Proportional braking: full power far away, smoothly
+                    // decelerating to 0 by STOP_DISTANCE_IN instead of an
+                    // abrupt full-power-then-zero cutoff.
+                    drive = Range.clip((distanceIn - STOP_DISTANCE_IN) * DRIVE_KP, 0, TEST_POWER);
+
+                    lastDrive = drive;
+                    lastTurn = turn;
 
                     telemetry.addData("Tag ID", tag.getFiducialId());
                     telemetry.addData("Distance (in)", "%.1f", distanceIn);
                     telemetry.addData("Tx (deg)", "%.1f", tx);
+                }
+            }
+
+            if (!seesTag) {
+                timeSinceSeenS += dt;
+                if (timeSinceSeenS < TAG_LOSS_GRACE_S) {
+                    // Brief dropout -- keep coasting on the last known
+                    // command instead of stopping dead.
+                    drive = lastDrive;
+                    turn = lastTurn;
+                } else {
+                    lastDrive = 0;
+                    lastTurn = 0;
                 }
             }
 
