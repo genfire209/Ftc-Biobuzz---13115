@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
@@ -41,6 +42,10 @@ public class AprilTagFollowTest extends LinearOpMode {
     // from the robot's own motion can cause momentary tag-loss that has
     // nothing to do with the tag actually being gone.
     private static final double TAG_LOSS_GRACE_S = 0.3;
+
+    // Logged to logcat/matchlogs every loop so behavior can be analyzed
+    // after a run instead of only guessed at from what the driver saw.
+    private static final String LOG_TAG = "AprilTagFollow";
 
     private DcMotor frontLeft, frontRight, backLeft, backRight;
     private Limelight3A limelight;
@@ -84,6 +89,8 @@ public class AprilTagFollowTest extends LinearOpMode {
             boolean seesTag = false;
             double drive = 0;
             double turn = 0;
+            double tx = 0;
+            double distanceIn = 0;
 
             if (result != null && result.isValid()) {
                 List<LLResultTypes.FiducialResult> fiducials = result.getFiducialResults();
@@ -92,9 +99,9 @@ public class AprilTagFollowTest extends LinearOpMode {
                     seesTag = true;
                     timeSinceSeenS = 0;
 
-                    double tx = tag.getTargetXDegrees();
+                    tx = tag.getTargetXDegrees();
                     Position pos = tag.getTargetPoseCameraSpace().getPosition().toUnit(DistanceUnit.INCH);
-                    double distanceIn = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+                    distanceIn = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
 
                     turn = Range.clip(tx * TURN_KP, -TEST_POWER, TEST_POWER);
                     // Proportional braking: full power far away, smoothly
@@ -135,6 +142,9 @@ public class AprilTagFollowTest extends LinearOpMode {
             frontRight.setPower(fr / max);
             backLeft.setPower(bl / max);
             backRight.setPower(br / max);
+
+            RobotLog.dd(LOG_TAG, "seesTag=%b tx=%.2f dist=%.1f turn=%.3f drive=%.3f fl=%.3f fr=%.3f bl=%.3f br=%.3f",
+                    seesTag, tx, distanceIn, turn, drive, fl / max, fr / max, bl / max, br / max);
 
             telemetry.addData("Tag visible", seesTag);
             telemetry.update();
