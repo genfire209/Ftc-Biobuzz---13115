@@ -1,6 +1,7 @@
 repositories {
     mavenCentral()
     google() // Needed for androidx
+    maven { url = 'https://maven.brott.dev/' } // FTC Dashboard
 }
 
 dependencies {
@@ -16,5 +17,11 @@ dependencies {
 
     implementation 'com.pedropathing:ftc:2.0.4'
     implementation 'com.pedropathing:telemetry:1.0.0'
+
+    // Browser dashboard at http://192.168.43.1:8080/dash (practice only --
+    // R704: no laptops on the robot Wi-Fi during matches).
+    implementation('com.acmerobotics.dashboard:dashboard:0.6.0') {
+        exclude group: 'org.firstinspires.ftc'
+    }
 }
 

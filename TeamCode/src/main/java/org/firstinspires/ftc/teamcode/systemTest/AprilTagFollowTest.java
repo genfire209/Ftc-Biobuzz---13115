@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.systemTest;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -64,6 +66,9 @@ public class AprilTagFollowTest extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
+        // Show telemetry on the Driver Station and the browser dashboard.
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
         frontLeft = hardwareMap.get(DcMotor.class, "front_left_drive");
         frontRight = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeft = hardwareMap.get(DcMotor.class, "back_left_drive");
