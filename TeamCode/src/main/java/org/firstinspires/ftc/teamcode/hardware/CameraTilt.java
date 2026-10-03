@@ -26,14 +26,22 @@ public class CameraTilt {
     private static final double MAX_ANGLE_DEG = 60.0;
 
     private Servo servo;
+    private double targetAngleDeg = 0.0;
 
     public void init(HardwareMap hw) {
         servo = hw.get(Servo.class, SERVO_NAME);
     }
 
+    // Last commanded pitch (degrees). The servo has no position feedback,
+    // so this assumes it got there -- HiveAimer's ty distance math uses it.
+    public double getTargetAngleDeg() {
+        return targetAngleDeg;
+    }
+
     // angleDeg: camera pitch, positive = tilted upward.
     public void setTargetAngleDeg(double angleDeg) {
         double clampedAngle = Range.clip(angleDeg, MIN_ANGLE_DEG, MAX_ANGLE_DEG);
+        targetAngleDeg = clampedAngle;
         double t = (clampedAngle - MIN_ANGLE_DEG) / (MAX_ANGLE_DEG - MIN_ANGLE_DEG);
         double position = POSITION_AT_MIN_ANGLE + t * (POSITION_AT_MAX_ANGLE - POSITION_AT_MIN_ANGLE);
         servo.setPosition(Range.clip(position, 0.0, 1.0));
