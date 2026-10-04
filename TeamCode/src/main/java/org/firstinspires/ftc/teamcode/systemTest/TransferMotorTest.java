@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Range;
 
 // Expansion Hub port 2: goBILDA 5202/3/4 series motor named "transfer".
-// Spins as soon as you press play. Change it live without rebuilding:
+// Spins at full power as soon as you press play. Change it live without rebuilding:
 //   dpad up / down  power +/- 0.05
 //   A               stop / start
 //   B               reverse direction
@@ -14,7 +14,7 @@ import com.qualcomm.robotcore.util.Range;
 public class TransferMotorTest extends LinearOpMode {
 
     private static final String MOTOR_NAME = "transfer";
-    private static final double START_POWER = 0.5;
+    private static final double START_POWER = 1.0;
     private static final double POWER_STEP = 0.05;
 
     private DcMotor motor;
