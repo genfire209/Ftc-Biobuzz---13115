@@ -9,8 +9,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 //
 //   Right joystick  launcher_pollen speed, full range: up = forward,
 //                   down = reverse, let go = stop.
-//   The transfer runs at TRANSFER_POWER whenever the launcher is running,
-//   and stops when the launcher stops.
+//   The transfer runs at TRANSFER_POWER in the same direction as the
+//   launcher whenever the launcher is running, and stops when it stops.
 @TeleOp(name = "Transfer + Launcher Test", group = "systemTest")
 public class TransferLauncherTest extends LinearOpMode {
 
@@ -50,13 +50,14 @@ public class TransferLauncherTest extends LinearOpMode {
             boolean launcherOn = Math.abs(stick) > STICK_DEADBAND;
 
             double launcherPower = launcherOn ? stick : 0;
-            double transferPower = launcherOn ? TRANSFER_POWER : 0;
+            // Same direction as the launcher: forward with it, reverse with it.
+            double transferPower = launcherOn ? Math.signum(stick) * TRANSFER_POWER : 0;
 
             launcher.setPower(launcherPower);
             transfer.setPower(transferPower);
 
             telemetry.addData("Launcher power", "%.2f  (right stick)", launcherPower);
-            telemetry.addData("Transfer power", "%.2f  (%s)", transferPower, launcherOn ? "on with launcher" : "off");
+            telemetry.addData("Transfer power", "%.2f  (%s)", transferPower, launcherOn ? (stick > 0 ? "forward with launcher" : "reverse with launcher") : "off");
             telemetry.update();
         }
 
