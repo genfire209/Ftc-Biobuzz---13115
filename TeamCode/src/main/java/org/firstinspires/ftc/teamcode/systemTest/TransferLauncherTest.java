@@ -35,6 +35,9 @@ public class TransferLauncherTest extends LinearOpMode {
             motor.setDirection(DcMotor.Direction.FORWARD);
             motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
+        // Launcher is mounted so it spins the opposite way from the transfer;
+        // reversed so both move balls the same way for the same stick input.
+        launcher.setDirection(DcMotor.Direction.REVERSE);
         // Let the launcher wheel coast down instead of slamming to a stop.
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         transfer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
