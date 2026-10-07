@@ -11,6 +11,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 //                   down = reverse, let go = stop.
 //   The transfer runs at TRANSFER_POWER in the same direction as the
 //   launcher whenever the launcher is running, and stops when it stops.
+//   The transfer is optional: if "transfer" isn't in the robot config,
+//   the test runs the launcher alone.
 @TeleOp(name = "Transfer + Launcher Test", group = "systemTest")
 public class TransferLauncherTest extends LinearOpMode {
 
@@ -29,20 +31,24 @@ public class TransferLauncherTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         launcher = hardwareMap.get(DcMotor.class, LAUNCHER_NAME);
-        transfer = hardwareMap.get(DcMotor.class, TRANSFER_NAME);
+        transfer = hardwareMap.tryGet(DcMotor.class, TRANSFER_NAME);
 
-        for (DcMotor motor : new DcMotor[]{launcher, transfer}) {
-            motor.setDirection(DcMotor.Direction.FORWARD);
-            motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        launcher.setDirection(DcMotor.Direction.FORWARD);
+        launcher.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        if (transfer != null) {
+            transfer.setDirection(DcMotor.Direction.FORWARD);
+            transfer.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            transfer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
         // Launcher is mounted so it spins the opposite way from the transfer;
         // reversed so both move balls the same way for the same stick input.
         launcher.setDirection(DcMotor.Direction.REVERSE);
         // Let the launcher wheel coast down instead of slamming to a stop.
         launcher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        transfer.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        telemetry.addLine("Ready. Right stick runs the launcher; transfer follows it.");
+        telemetry.addLine(transfer != null
+                ? "Ready. Right stick runs the launcher; transfer follows it."
+                : "Ready. Right stick runs the launcher. (No \"transfer\" in config: launcher only.)");
         telemetry.update();
 
         waitForStart();
@@ -57,14 +63,22 @@ public class TransferLauncherTest extends LinearOpMode {
             double transferPower = launcherOn ? Math.signum(stick) * TRANSFER_POWER : 0;
 
             launcher.setPower(launcherPower);
-            transfer.setPower(transferPower);
+            if (transfer != null) {
+                transfer.setPower(transferPower);
+            }
 
             telemetry.addData("Launcher power", "%.2f  (right stick)", launcherPower);
-            telemetry.addData("Transfer power", "%.2f  (%s)", transferPower, launcherOn ? (stick > 0 ? "forward with launcher" : "reverse with launcher") : "off");
+            if (transfer != null) {
+                telemetry.addData("Transfer power", "%.2f  (%s)", transferPower, launcherOn ? (stick > 0 ? "forward with launcher" : "reverse with launcher") : "off");
+            } else {
+                telemetry.addLine("Transfer: not configured (launcher-only test)");
+            }
             telemetry.update();
         }
 
         launcher.setPower(0);
-        transfer.setPower(0);
+        if (transfer != null) {
+            transfer.setPower(0);
+        }
     }
 }
