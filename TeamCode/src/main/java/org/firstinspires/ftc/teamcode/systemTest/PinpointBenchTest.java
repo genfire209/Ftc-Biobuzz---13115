@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.systemTest;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -26,6 +28,9 @@ public class PinpointBenchTest extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
+        // Show telemetry on the Driver Station and the browser dashboard.
+        telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
         GoBildaPinpointDriver pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, PINPOINT_NAME);
         // Placeholder resolution (4096 counts per 38 mm wheel turn) only so the
         // mm readout is roughly sensible; the raw counts below are what matter.
