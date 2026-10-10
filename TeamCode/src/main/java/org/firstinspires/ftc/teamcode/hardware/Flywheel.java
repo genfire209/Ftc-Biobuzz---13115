@@ -27,10 +27,10 @@ public class Flywheel {
 
     public static final String MOTOR_NAME = "launcher_pollen";
 
-    // Bench tests (TransferLauncherTest 2026-10-04; Single Wheel Test
-    // 2026-10-10, where FORWARD spun the outtake wheel backward): REVERSE
-    // spins it the right way. TODO: VERIFY on the robot that a ball goes OUT.
-    public static final DcMotor.Direction DIRECTION = DcMotor.Direction.REVERSE;
+    // On the robot (Intake + Outtake Test, 2026-10-10) REVERSE spun the
+    // outtake backward, so FORWARD. (The 2026-10-04 bench rig was mounted
+    // differently and needed REVERSE.)
+    public static final DcMotor.Direction DIRECTION = DcMotor.Direction.FORWARD;
 
     // TODO: MEASURE with systemTest/ShooterSetupTest: highest ticks/s at full
     // power with a charged battery and no ball. Fraction 1.0 = this speed.
