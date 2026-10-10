@@ -31,12 +31,16 @@ import java.util.List;
 //   (PARK, 5).
 //
 // LEAVE + PARK, NO SHOOTING (for when the partner shoots the preloads):
-//   Start with the robot's LEFT side touching the red alliance wall, front
-//   just short of the LOADING ZONE, facing the far wall. Slides off the wall
+//   Start with the robot's LEFT side touching the red alliance wall, on the
+//   middle-of-the-field side of the LOADING ZONE with its front just short
+//   of the tape, facing along the wall. Slides off the wall
 //   (LEAVE) and forward into the zone (PARK). Keeps its POLLEN for TELEOP.
 //
 // INIT menu (gamepad 1): D-pad up/down = start delay, Circle = park on/off,
-// Triangle = which half of the LOADING ZONE (agree with the partner).
+// Triangle = which half of the LOADING ZONE (agree with the partner): the
+// half nearer the MIDDLE of the field or the half nearer the CORNER. Named
+// that way because blue's zone is red's rotated 180 deg -- "audience half"
+// would mean opposite ends for the two alliances.
 // The INIT screen also shows how far the robot has been pushed -- use it to
 // check the odometry pods (push forward 1 tile -> "forward +23.5").
 //
@@ -74,8 +78,10 @@ public abstract class MeetOneAutoBase extends OpMode {
     // with its left side 3in inside the tape ("at least partially in").
     private static final double LZ_X_MAX = 12.9;
     private static final double PARK_X = LZ_X_MAX - 3.0 + LEFT_IN;
-    private static final double PARK_Y_AUDIENCE_HALF = 96.0;
-    private static final double PARK_Y_FAR_HALF = 118.0;
+    // Red zone halves: y 96 is the end nearer the middle of the field, y 118
+    // the end nearer the corner (same after rotating for blue).
+    private static final double PARK_Y_MIDDLE_HALF = 96.0;
+    private static final double PARK_Y_CORNER_HALF = 118.0;
 
     // Park only: left side on the alliance wall, front 1in short of the zone
     // (starting inside it is illegal, G304E).
@@ -125,7 +131,7 @@ public abstract class MeetOneAutoBase extends OpMode {
     // INIT menu choices.
     private double delayS = 0;
     private boolean park = true;
-    private boolean parkFarHalf = false;
+    private boolean parkCornerHalf = false;
 
     private Step step;
     private boolean useOdometry;
@@ -155,17 +161,19 @@ public abstract class MeetOneAutoBase extends OpMode {
         if (gamepad1.dpadUpWasPressed()) delayS = Math.min(MAX_DELAY_S, delayS + 1);
         if (gamepad1.dpadDownWasPressed()) delayS = Math.max(0, delayS - 1);
         if (gamepad1.circleWasPressed()) park = !park;
-        if (gamepad1.triangleWasPressed()) parkFarHalf = !parkFarHalf;
+        if (gamepad1.triangleWasPressed()) parkCornerHalf = !parkCornerHalf;
 
         odometry.update();
 
         telemetry.addData("Auto", "%s %s", alliance, shootPreload ? "SHOOT + PARK" : "LEAVE + PARK (no shoot)");
         telemetry.addLine(shootPreload
                 ? "Back on the " + (alliance == Alliance.RED ? "AUDIENCE" : "FAR") + " wall, centered on our HIVE, facing it."
-                : "Left side on our alliance wall, just short of the LOADING ZONE.");
+                : "Left side on our alliance wall, just short of the LOADING ZONE (middle-of-field side).");
         telemetry.addData("Start delay (D-pad up/down)", "%.0f s", delayS);
         telemetry.addData("Park (Circle)", park ? "YES" : "no");
-        telemetry.addData("Park half (Triangle)", parkFarHalf ? "FAR-wall half" : "AUDIENCE half");
+        telemetry.addData("Park half (Triangle)", parkCornerHalf
+                ? "CORNER half (end of the zone nearer the field corner)"
+                : "MIDDLE half (end of the zone nearer the middle of the field)");
         if (shootPreload) {
             telemetry.addData("Shot speed", "%.0f%% (%s)", 100 * presets.get(AUTO_SHOT_SPOT),
                     presets.isLoadedFromFile() ? "saved on hub" : "DEFAULT - not tuned");
@@ -298,7 +306,7 @@ public abstract class MeetOneAutoBase extends OpMode {
             return;
         }
         route.clear();
-        double parkY = parkFarHalf ? PARK_Y_FAR_HALF : PARK_Y_AUDIENCE_HALF;
+        double parkY = parkCornerHalf ? PARK_Y_CORNER_HALF : PARK_Y_MIDDLE_HALF;
         if (shootPreload) {
             double leaveY = Math.max(LEAVE_Y, RED_SHOOT_START.getY() + SHOOT_FORWARD_IN);
             route.add(at(new Pose(FieldConstants.RED_HIVE_X, leaveY, FACING_FAR_WALL)));
