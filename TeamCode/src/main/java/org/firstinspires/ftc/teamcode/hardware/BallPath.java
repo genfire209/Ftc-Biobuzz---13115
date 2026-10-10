@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 // Everything between the floor and the flywheel on the meet-1 robot:
 //   - "intake" (Expansion Hub motor port 3, goBILDA 1150 RPM): ONE motor
@@ -57,7 +58,8 @@ public class BallPath {
 
     // FEED: gate open and balls pushed up into the flywheel for as long as
     // it's set (hold-to-shoot in the TEMP TeleOp).
-    public enum Mode { STOP, INTAKE, SPIT, FEED, SHOOT }
+    // OPEN: gate open, intake off (manual gate check / setting it up).
+    public enum Mode { STOP, INTAKE, SPIT, FEED, OPEN, SHOOT }
 
     private DcMotor intake;
     private Servo gate;
@@ -95,7 +97,7 @@ public class BallPath {
 
     public static double savedOpenPulseS() { return SavedNumber.load(OPEN_PULSE_FILE, OPEN_PULSE_S); }
 
-    // STOP, INTAKE, SPIT or FEED. Cancels a volley in progress.
+    // STOP, INTAKE, SPIT, FEED or OPEN. Cancels a volley in progress.
     public void setMode(Mode newMode) {
         if (newMode == Mode.SHOOT) return;   // use startVolley()
         mode = newMode;
@@ -127,6 +129,10 @@ public class BallPath {
                 intake.setPower(FEED_POWER);
                 if (!gateOpen) openGate();
                 break;
+            case OPEN:
+                intake.setPower(0);
+                if (!gateOpen) openGate();
+                break;
             case SHOOT:
                 intake.setPower(FEED_POWER);
                 if (gateOpen) {
@@ -146,6 +152,23 @@ public class BallPath {
                 break;
         }
     }
+
+    // Moves whichever position the gate is in now (SHUT or OPEN) by delta,
+    // right away, and saves it on the hub. Returns false if the save failed.
+    public boolean nudgeGate(double delta) {
+        boolean saved;
+        if (gateOpen) {
+            gateOpenPosition = Range.clip(gateOpenPosition + delta, 0, 1);
+            saved = SavedNumber.save(GATE_OPEN_FILE, gateOpenPosition);
+        } else {
+            gateClosed = Range.clip(gateClosed + delta, 0, 1);
+            saved = SavedNumber.save(GATE_CLOSED_FILE, gateClosed);
+        }
+        if (gate != null) gate.setPosition(getGatePosition());
+        return saved;
+    }
+
+    public double getGatePosition() { return gateOpen ? gateOpenPosition : gateClosed; }
 
     public Mode getMode() { return mode; }
 

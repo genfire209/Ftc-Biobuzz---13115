@@ -32,6 +32,10 @@ import org.firstinspires.ftc.teamcode.hardware.SavedNumber;
 //                        because each ball slows the flywheel down.
 //   D-pad up / down      outtake power +/-5%   (saved on the hub right away)
 //   D-pad left / right   outtake power -/+1%
+//   Circle               gate open / shut by hand (R2 or L1 shuts it again)
+//   Triangle / Square    move the gate +/- one step. Moves whichever
+//                        position it's in now -- SHUT or OPEN -- and saves
+//                        it on the hub (same numbers as Shooter Setup Test).
 //
 // Lightbar: red = outtake off, yellow = spinning up, green = ready.
 // Rumble: 2 blips at 0:30 left, long at 0:15 (go park in the LOADING ZONE).
@@ -57,6 +61,8 @@ public class TempTeleOp extends LinearOpMode {
     private static final double VOLTAGE_READ_PERIOD_S = 0.25;
     // Time from outtake on to the first ball (no speed sensor used here).
     private static final double SPINUP_S = 1.5;
+    // Gate servo step per Triangle/Square press (~6 deg on a 300 deg servo).
+    private static final double GATE_STEP = 0.02;
 
     private enum Light { OFF, RED, YELLOW, GREEN }
 
@@ -83,6 +89,8 @@ public class TempTeleOp extends LinearOpMode {
         double power = Range.clip(SavedNumber.load(POWER_FILE, DEFAULT_POWER), MIN_POWER, 1.0);
         String saveNote = "saved on hub";
         boolean outtakeOn = false;
+        boolean gateHeldOpen = false;
+        String gateNote = "";
         ElapsedTime spinTimer = new ElapsedTime();
 
         telemetry.addData("Outtake power", "%.0f%%", 100 * power);
@@ -129,17 +137,29 @@ public class TempTeleOp extends LinearOpMode {
             }
             outtake.setPower(outtakeOn ? Range.clip(power * NOMINAL_VOLTAGE / voltage, 0, 1) : 0);
 
-            // ---- Ball path: spit beats shoot beats intake ----
+            // ---- Ball path: spit beats shoot beats intake beats Circle ----
+            if (gamepad1.circleWasPressed()) gateHeldOpen = !gateHeldOpen;
             if (gamepad1.left_bumper) {
                 ballPath.setMode(BallPath.Mode.SPIT);
+                gateHeldOpen = false;
             } else if (shootHeld && ready) {
                 ballPath.setMode(BallPath.Mode.FEED);
             } else if (gamepad1.right_trigger > TRIGGER_PRESSED) {
                 ballPath.setMode(BallPath.Mode.INTAKE);
+                gateHeldOpen = false;
             } else {
-                ballPath.setMode(BallPath.Mode.STOP);
+                ballPath.setMode(gateHeldOpen ? BallPath.Mode.OPEN : BallPath.Mode.STOP);
             }
             ballPath.update(ready);
+
+            // ---- Gate set-up: after update() so it moves the position the
+            // gate is actually in now ----
+            if (gamepad1.triangleWasPressed()) {
+                gateNote = ballPath.nudgeGate(GATE_STEP) ? "saved" : "SAVE FAILED";
+            }
+            if (gamepad1.squareWasPressed()) {
+                gateNote = ballPath.nudgeGate(-GATE_STEP) ? "saved" : "SAVE FAILED";
+            }
 
             // ---- Driver feedback ----
             setLight(!outtakeOn ? Light.RED : ready ? Light.GREEN : Light.YELLOW);
@@ -159,7 +179,9 @@ public class TempTeleOp extends LinearOpMode {
             telemetry.addData("Outtake", "%s  power %.0f%%  (%s)",
                     !outtakeOn ? "off" : ready ? "READY" : "spinning up", 100 * power, saveNote);
             telemetry.addData("Outtake speed", "%.0f ticks/s", Math.abs(outtake.getVelocity()));
-            telemetry.addData("Ball path", "%s, gate %s", ballPath.getMode(), ballPath.isGateOpen() ? "OPEN" : "shut");
+            telemetry.addData("Ball path", ballPath.getMode());
+            telemetry.addData("Gate", "%s at %.2f  (Triangle/Square to move) %s",
+                    ballPath.isGateOpen() ? "OPEN" : "SHUT", ballPath.getGatePosition(), gateNote);
             telemetry.addData("Battery", "%.1f V", voltage);
             telemetry.update();
         }
