@@ -38,22 +38,33 @@ public class BallPath {
     public static final double FEED_POWER = 0.8;
     public static final double SPIT_POWER = -0.6;
 
-    // TODO: MEASURE with systemTest/ShooterSetupTest.
+    // Defaults only: Shooter Setup Test saves the real values on the hub
+    // (Square = shut, Triangle = open, D-pad left/right = pulse), and
+    // init() loads them.
     public static final double GATE_CLOSED = 0.30;
     public static final double GATE_OPEN = 0.60;
     // Long enough for one ball to get past the gate, short enough that the
     // next one doesn't follow it.
     public static final double OPEN_PULSE_S = 0.25;
+    public static final String GATE_CLOSED_FILE = "meet1_gate_closed";
+    public static final String GATE_OPEN_FILE = "meet1_gate_open";
+    public static final String OPEN_PULSE_FILE = "meet1_gate_pulse_s";
     // Shortest time the gate stays shut between balls.
     public static final double MIN_CLOSED_S = 0.30;
 
     // A volley gives up after this long (e.g. flywheel never got to speed).
     private static final double VOLLEY_TIMEOUT_S = 8.0;
 
-    public enum Mode { STOP, INTAKE, SPIT, SHOOT }
+    // FEED: gate open and balls pushed up into the flywheel for as long as
+    // it's set (hold-to-shoot in the TEMP TeleOp).
+    public enum Mode { STOP, INTAKE, SPIT, FEED, SHOOT }
 
     private DcMotor intake;
     private Servo gate;
+
+    private double gateClosed = GATE_CLOSED;
+    private double gateOpenPosition = GATE_OPEN;
+    private double openPulseS = OPEN_PULSE_S;
 
     private Mode mode = Mode.STOP;
     private boolean gateOpen = false;
@@ -68,13 +79,23 @@ public class BallPath {
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        gateClosed = savedGateClosed();
+        gateOpenPosition = savedGateOpen();
+        openPulseS = savedOpenPulseS();
+
         // Optional so a missing config entry shows up as a telemetry
         // warning instead of a crash at INIT.
         gate = hw.tryGet(Servo.class, GATE_NAME);
         closeGate();
     }
 
-    // STOP, INTAKE or SPIT. Cancels a volley in progress.
+    public static double savedGateClosed() { return SavedNumber.load(GATE_CLOSED_FILE, GATE_CLOSED); }
+
+    public static double savedGateOpen() { return SavedNumber.load(GATE_OPEN_FILE, GATE_OPEN); }
+
+    public static double savedOpenPulseS() { return SavedNumber.load(OPEN_PULSE_FILE, OPEN_PULSE_S); }
+
+    // STOP, INTAKE, SPIT or FEED. Cancels a volley in progress.
     public void setMode(Mode newMode) {
         if (newMode == Mode.SHOOT) return;   // use startVolley()
         mode = newMode;
@@ -102,10 +123,14 @@ public class BallPath {
                 intake.setPower(SPIT_POWER);
                 closeGate();
                 break;
+            case FEED:
+                intake.setPower(FEED_POWER);
+                if (!gateOpen) openGate();
+                break;
             case SHOOT:
                 intake.setPower(FEED_POWER);
                 if (gateOpen) {
-                    if (gateTimer.seconds() > OPEN_PULSE_S) closeGate();
+                    if (gateTimer.seconds() > openPulseS) closeGate();
                 } else if (shotsFired >= volleySize || volleyTimer.seconds() > VOLLEY_TIMEOUT_S) {
                     mode = Mode.STOP;            // volley finished
                     intake.setPower(0);
@@ -141,13 +166,13 @@ public class BallPath {
     }
 
     private void openGate() {
-        if (gate != null) gate.setPosition(GATE_OPEN);
+        if (gate != null) gate.setPosition(gateOpenPosition);
         gateOpen = true;
         gateTimer.reset();
     }
 
     private void closeGate() {
-        if (gate != null) gate.setPosition(GATE_CLOSED);
+        if (gate != null) gate.setPosition(gateClosed);
         if (gateOpen) gateTimer.reset();
         gateOpen = false;
     }

@@ -10,9 +10,11 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.hardware.BallPath;
 import org.firstinspires.ftc.teamcode.hardware.Flywheel;
+import org.firstinspires.ftc.teamcode.hardware.SavedNumber;
 
-// Finds the numbers the meet-1 shooter code needs. Write the results into
-// hardware/Flywheel.java and hardware/BallPath.java.
+// Finds the numbers the meet-1 shooter code needs. The gate numbers are
+// saved on the hub as soon as you set them (every OpMode uses them from the
+// next INIT, no rebuild); MAX_TICKS_PER_SEC goes into hardware/Flywheel.java.
 //
 //   Right stick up       flywheel power (raw). Telemetry shows ticks/s and
 //                        the highest seen -> Flywheel.MAX_TICKS_PER_SEC
@@ -21,8 +23,8 @@ import org.firstinspires.ftc.teamcode.hardware.Flywheel;
 //   L1                   reset the highest-seen reading
 //   R2 / L2 hold         intake in / out (load balls up to the gate)
 //   D-pad up / down      move the gate servo +/-0.02
-//   Square / Triangle    remember this position as SHUT / OPEN
-//   D-pad left / right   gate pulse length -/+0.05 s
+//   Square / Triangle    save this position as SHUT / OPEN (on the hub)
+//   D-pad left / right   gate pulse length -/+0.05 s (saved on the hub)
 //   Cross                one pulse: OPEN for the pulse length, then SHUT.
 //                        Right = exactly one ball gets through per pulse.
 @TeleOp(name = "Shooter Setup Test", group = "systemTest")
@@ -44,10 +46,11 @@ public class ShooterSetupTest extends LinearOpMode {
         intake.setDirection(BallPath.INTAKE_DIRECTION);
         Servo gate = hardwareMap.tryGet(Servo.class, "shooter_gate");
 
-        double gatePosition = BallPath.GATE_CLOSED;
-        double shut = BallPath.GATE_CLOSED;
-        double open = BallPath.GATE_OPEN;
-        double pulseS = BallPath.OPEN_PULSE_S;
+        double shut = BallPath.savedGateClosed();
+        double open = BallPath.savedGateOpen();
+        double pulseS = BallPath.savedOpenPulseS();
+        double gatePosition = shut;
+        String saveNote = "";
         double maxTicksPerSec = 0;
         boolean pulsing = false;
         ElapsedTime pulseTimer = new ElapsedTime();
@@ -74,10 +77,21 @@ public class ShooterSetupTest extends LinearOpMode {
 
             if (gamepad1.dpadUpWasPressed()) gatePosition = Range.clip(gatePosition + GATE_STEP, 0, 1);
             if (gamepad1.dpadDownWasPressed()) gatePosition = Range.clip(gatePosition - GATE_STEP, 0, 1);
-            if (gamepad1.squareWasPressed()) shut = gatePosition;
-            if (gamepad1.triangleWasPressed()) open = gatePosition;
-            if (gamepad1.dpadLeftWasPressed()) pulseS = Math.max(PULSE_STEP_S, pulseS - PULSE_STEP_S);
-            if (gamepad1.dpadRightWasPressed()) pulseS += PULSE_STEP_S;
+            if (gamepad1.squareWasPressed()) {
+                shut = gatePosition;
+                saveNote = SavedNumber.save(BallPath.GATE_CLOSED_FILE, shut) ? "SHUT saved" : "SAVE FAILED";
+            }
+            if (gamepad1.triangleWasPressed()) {
+                open = gatePosition;
+                saveNote = SavedNumber.save(BallPath.GATE_OPEN_FILE, open) ? "OPEN saved" : "SAVE FAILED";
+            }
+            boolean pulseShorter = gamepad1.dpadLeftWasPressed();
+            boolean pulseLonger = gamepad1.dpadRightWasPressed();
+            if (pulseShorter) pulseS = Math.max(PULSE_STEP_S, pulseS - PULSE_STEP_S);
+            if (pulseLonger) pulseS += PULSE_STEP_S;
+            if (pulseShorter || pulseLonger) {
+                saveNote = SavedNumber.save(BallPath.OPEN_PULSE_FILE, pulseS) ? "pulse saved" : "SAVE FAILED";
+            }
             if (gamepad1.crossWasPressed() && !pulsing) {
                 pulsing = true;
                 pulseTimer.reset();
@@ -96,8 +110,9 @@ public class ShooterSetupTest extends LinearOpMode {
             telemetry.addData("Flywheel power", "%.2f", power);
             telemetry.addData("Flywheel ticks/s", "%.0f   (highest %.0f -> MAX_TICKS_PER_SEC)", ticksPerSec, maxTicksPerSec);
             telemetry.addData("Gate position now", "%.2f", commanded);
-            telemetry.addData("SHUT / OPEN", "%.2f / %.2f  -> GATE_CLOSED / GATE_OPEN", shut, open);
-            telemetry.addData("Pulse length", "%.2f s  -> OPEN_PULSE_S", pulseS);
+            telemetry.addData("SHUT / OPEN (saved)", "%.2f / %.2f", shut, open);
+            telemetry.addData("Pulse length (saved)", "%.2f s", pulseS);
+            telemetry.addData("Last save", saveNote);
             telemetry.update();
         }
 

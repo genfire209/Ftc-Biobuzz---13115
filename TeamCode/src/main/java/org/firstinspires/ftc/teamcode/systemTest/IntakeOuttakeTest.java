@@ -89,7 +89,7 @@ public class IntakeOuttakeTest extends LinearOpMode {
 
             if (gate != null && gamepad1.circleWasPressed()) {
                 gateOpen = !gateOpen;
-                gate.setPosition(gateOpen ? BallPath.GATE_OPEN : BallPath.GATE_CLOSED);
+                gate.setPosition(gateOpen ? BallPath.savedGateOpen() : BallPath.savedGateClosed());
                 gateState = gateOpen ? "OPEN" : "SHUT";
             }
 
