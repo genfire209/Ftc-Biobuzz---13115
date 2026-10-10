@@ -56,10 +56,9 @@ public class BallPath {
     // A volley gives up after this long (e.g. flywheel never got to speed).
     private static final double VOLLEY_TIMEOUT_S = 8.0;
 
-    // FEED: gate open and balls pushed up into the flywheel for as long as
-    // it's set (hold-to-shoot in the TEMP TeleOp).
-    // OPEN: gate open, intake off (manual gate check / setting it up).
-    public enum Mode { STOP, INTAKE, SPIT, FEED, OPEN, SHOOT }
+    // MANUAL: intake power and gate set directly with setManual() (TEMP
+    // TeleOp).
+    public enum Mode { STOP, INTAKE, SPIT, MANUAL, SHOOT }
 
     private DcMotor intake;
     private Servo gate;
@@ -69,6 +68,8 @@ public class BallPath {
     private double openPulseS = OPEN_PULSE_S;
 
     private Mode mode = Mode.STOP;
+    private double manualIntakePower = 0;
+    private boolean manualGateOpen = false;
     private boolean gateOpen = false;
     private int shotsFired = 0;
     private int volleySize = 0;
@@ -97,10 +98,18 @@ public class BallPath {
 
     public static double savedOpenPulseS() { return SavedNumber.load(OPEN_PULSE_FILE, OPEN_PULSE_S); }
 
-    // STOP, INTAKE, SPIT, FEED or OPEN. Cancels a volley in progress.
+    // STOP, INTAKE or SPIT. Cancels a volley in progress.
     public void setMode(Mode newMode) {
-        if (newMode == Mode.SHOOT) return;   // use startVolley()
+        if (newMode == Mode.SHOOT || newMode == Mode.MANUAL) return;   // use startVolley() / setManual()
         mode = newMode;
+    }
+
+    // Runs the intake at intakePower (+ = in) with the gate open or shut,
+    // until the next setMode/startVolley. Cancels a volley in progress.
+    public void setManual(double intakePower, boolean openTheGate) {
+        manualIntakePower = intakePower;
+        manualGateOpen = openTheGate;
+        mode = Mode.MANUAL;
     }
 
     // Fires `balls` gate pulses, each one as soon as the flywheel is at speed.
@@ -125,13 +134,13 @@ public class BallPath {
                 intake.setPower(SPIT_POWER);
                 closeGate();
                 break;
-            case FEED:
-                intake.setPower(FEED_POWER);
-                if (!gateOpen) openGate();
-                break;
-            case OPEN:
-                intake.setPower(0);
-                if (!gateOpen) openGate();
+            case MANUAL:
+                intake.setPower(manualIntakePower);
+                if (!manualGateOpen) {
+                    closeGate();
+                } else if (!gateOpen) {
+                    openGate();
+                }
                 break;
             case SHOOT:
                 intake.setPower(FEED_POWER);

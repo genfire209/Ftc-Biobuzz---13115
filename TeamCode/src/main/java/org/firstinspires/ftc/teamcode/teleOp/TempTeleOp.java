@@ -21,18 +21,23 @@ import org.firstinspires.ftc.teamcode.hardware.SavedNumber;
 //   Left stick           drive / strafe (up = toward the intake)
 //   Right stick X        turn
 //   L2 hold              slow mode
-//   R2 hold              intake (gate stays shut, balls wait at the gate)
+//   R2 hold              intake. Outtake OFF: shuts the gate, balls wait at
+//                        it. Outtake ON: leaves the gate alone -- open it
+//                        with Circle and R2 feeds balls straight through.
 //   L1 hold              spit / unjam (reverse) -- use it if a 5th ball
-//                        gets in (G407: never hold more than 4)
+//                        gets in (G407: never hold more than 4). Same gate
+//                        rule as R2.
 //   Cross                outtake on / off
 //   R1 hold              SHOOT: turns the outtake on if it's off, waits
 //                        SPINUP_S for it to get to speed, then opens the
-//                        gate and feeds balls for as long as it's held.
+//                        gate and feeds balls for as long as it's held
+//                        (let go: the gate goes back to how Circle left it).
 //                        Tap it for one ball at a time -- more consistent,
 //                        because each ball slows the flywheel down.
 //   D-pad up / down      outtake power +/-5%   (saved on the hub right away)
 //   D-pad left / right   outtake power -/+1%
-//   Circle               gate open / shut by hand (R2 or L1 shuts it again)
+//   Circle               gate open / shut. While the outtake is on, this is
+//                        the only thing that shuts it.
 //   Triangle / Square    move the gate +/- one step. Moves whichever
 //                        position it's in now -- SHUT or OPEN -- and saves
 //                        it on the hub (same numbers as Shooter Setup Test).
@@ -137,19 +142,29 @@ public class TempTeleOp extends LinearOpMode {
             }
             outtake.setPower(outtakeOn ? Range.clip(power * NOMINAL_VOLTAGE / voltage, 0, 1) : 0);
 
-            // ---- Ball path: spit beats shoot beats intake beats Circle ----
+            // ---- Ball path: spit beats shoot beats intake ----
+            // Gate: Circle opens/shuts it. Outtake off -> intake or spit
+            // shuts it too; outtake on -> only Circle does. R1 opens it
+            // while held.
+            boolean intakeHeld = gamepad1.right_trigger > TRIGGER_PRESSED;
+            boolean spitHeld = gamepad1.left_bumper;
+            boolean feeding = shootHeld && ready && !spitHeld;
             if (gamepad1.circleWasPressed()) gateHeldOpen = !gateHeldOpen;
-            if (gamepad1.left_bumper) {
-                ballPath.setMode(BallPath.Mode.SPIT);
-                gateHeldOpen = false;
-            } else if (shootHeld && ready) {
-                ballPath.setMode(BallPath.Mode.FEED);
-            } else if (gamepad1.right_trigger > TRIGGER_PRESSED) {
-                ballPath.setMode(BallPath.Mode.INTAKE);
-                gateHeldOpen = false;
-            } else {
-                ballPath.setMode(gateHeldOpen ? BallPath.Mode.OPEN : BallPath.Mode.STOP);
+            if (!outtakeOn && (intakeHeld || spitHeld)) gateHeldOpen = false;
+
+            double intakePower = 0;
+            String intakeState = "stopped";
+            if (spitHeld) {
+                intakePower = BallPath.SPIT_POWER;
+                intakeState = "OUT (spit)";
+            } else if (feeding) {
+                intakePower = BallPath.FEED_POWER;
+                intakeState = "FEEDING the outtake";
+            } else if (intakeHeld) {
+                intakePower = BallPath.INTAKE_POWER;
+                intakeState = "IN";
             }
+            ballPath.setManual(intakePower, gateHeldOpen || feeding);
             ballPath.update(ready);
 
             // ---- Gate set-up: after update() so it moves the position the
@@ -179,7 +194,7 @@ public class TempTeleOp extends LinearOpMode {
             telemetry.addData("Outtake", "%s  power %.0f%%  (%s)",
                     !outtakeOn ? "off" : ready ? "READY" : "spinning up", 100 * power, saveNote);
             telemetry.addData("Outtake speed", "%.0f ticks/s", Math.abs(outtake.getVelocity()));
-            telemetry.addData("Ball path", ballPath.getMode());
+            telemetry.addData("Intake", intakeState);
             telemetry.addData("Gate", "%s at %.2f  (Triangle/Square to move) %s",
                     ballPath.isGateOpen() ? "OPEN" : "SHUT", ballPath.getGatePosition(), gateNote);
             telemetry.addData("Battery", "%.1f V", voltage);
