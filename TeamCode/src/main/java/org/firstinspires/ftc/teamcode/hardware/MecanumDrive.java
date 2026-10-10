@@ -7,10 +7,10 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 // goBILDA 312 RPM motors on Control Hub motor ports 0-3). Used by both
 // MeetOneTeleOp and MeetOneAutoBase.
 //
-// TODO: VERIFY on the assembled robot with systemTest/WheelDirectionTest
-// (it uses these same constants). These are the old chassis's directions
-// from BasicTeleOp; the belt drive may flip some of them. Every wheel must
-// turn the way that drives the robot toward the intake for drive(1, 0, 0).
+// Every wheel must turn the way that drives the robot toward the intake for
+// drive(1, 0, 0). Checked on the assembled robot 2026-10-10 with
+// systemTest/WheelDirectionTest (it uses these same constants): the old
+// chassis's directions spun all four backward, so all four are flipped.
 public class MecanumDrive {
 
     public static final String FRONT_LEFT_NAME = "front_left_drive";
@@ -18,10 +18,10 @@ public class MecanumDrive {
     public static final String BACK_LEFT_NAME = "back_left_drive";
     public static final String BACK_RIGHT_NAME = "back_right_drive";
 
-    public static final DcMotor.Direction FRONT_LEFT_DIRECTION = DcMotor.Direction.REVERSE;
-    public static final DcMotor.Direction FRONT_RIGHT_DIRECTION = DcMotor.Direction.FORWARD;
-    public static final DcMotor.Direction BACK_LEFT_DIRECTION = DcMotor.Direction.REVERSE;
-    public static final DcMotor.Direction BACK_RIGHT_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction FRONT_LEFT_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction FRONT_RIGHT_DIRECTION = DcMotor.Direction.REVERSE;
+    public static final DcMotor.Direction BACK_LEFT_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction BACK_RIGHT_DIRECTION = DcMotor.Direction.REVERSE;
 
     private DcMotor frontLeft, frontRight, backLeft, backRight;
 
