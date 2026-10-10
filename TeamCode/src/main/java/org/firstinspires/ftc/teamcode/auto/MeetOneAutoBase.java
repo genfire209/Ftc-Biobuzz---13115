@@ -30,7 +30,7 @@ import java.util.List;
 //   over to a lane at x = 30, up the lane and into the LOADING ZONE
 //   (PARK, 5).
 //
-// PARK ONLY (for when the partner shoots the preloads):
+// LEAVE + PARK, NO SHOOTING (for when the partner shoots the preloads):
 //   Start with the robot's LEFT side touching the red alliance wall, front
 //   just short of the LOADING ZONE, facing the far wall. Slides off the wall
 //   (LEAVE) and forward into the zone (PARK). Keeps its POLLEN for TELEOP.
@@ -159,7 +159,7 @@ public abstract class MeetOneAutoBase extends OpMode {
 
         odometry.update();
 
-        telemetry.addData("Auto", "%s %s", alliance, shootPreload ? "SHOOT + PARK" : "PARK ONLY");
+        telemetry.addData("Auto", "%s %s", alliance, shootPreload ? "SHOOT + PARK" : "LEAVE + PARK (no shoot)");
         telemetry.addLine(shootPreload
                 ? "Back on the " + (alliance == Alliance.RED ? "AUDIENCE" : "FAR") + " wall, centered on our HIVE, facing it."
                 : "Left side on our alliance wall, just short of the LOADING ZONE.");
@@ -232,9 +232,9 @@ public abstract class MeetOneAutoBase extends OpMode {
                 break;
 
             case FIRING:
-                boolean allFired = ballPath.getShotsFired() >= PRELOAD_BALLS + SPARE_PULSES && !ballPath.isGateOpen();
-                if (allFired || stepTimer.seconds() > MAX_SHOOTING_S || t > GO_PARK_BY_S) {
-                    if (!allFired) note = "stopped shooting early (time)";
+                boolean volleyOver = !ballPath.isVolleyActive();
+                if (volleyOver || stepTimer.seconds() > MAX_SHOOTING_S || t > GO_PARK_BY_S) {
+                    if (ballPath.getShotsFired() < PRELOAD_BALLS + SPARE_PULSES) note = "stopped shooting early (time)";
                     flywheel.stop();
                     ballPath.stop();
                     beginRoute();
@@ -288,8 +288,7 @@ public abstract class MeetOneAutoBase extends OpMode {
     // ---- Steps ----
 
     private void beginFiring() {
-        ballPath.resetShots();
-        ballPath.setMode(BallPath.Mode.SHOOT);
+        ballPath.startVolley(PRELOAD_BALLS + SPARE_PULSES);
         setStep(Step.FIRING);
     }
 

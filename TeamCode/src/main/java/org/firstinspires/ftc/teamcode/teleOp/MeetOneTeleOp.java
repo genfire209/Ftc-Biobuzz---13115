@@ -16,10 +16,13 @@ import org.firstinspires.ftc.teamcode.hardware.ShooterPresets;
 //   Right stick X        turn
 //   L2 hold              precision mode (slow)
 //   R2 hold              intake (gate stays shut, balls stack at the gate)
-//   R1 hold              SHOOT: spins up if needed, then one ball each time
-//                        the flywheel is back at speed
-//   L1 hold              spit / unjam (reverse) -- use it the moment a 5th
-//                        ball gets in (G407: never hold more than 4)
+//   R1 press             SHOOT ALL: spins up, and once it's at speed fires
+//                        all 4 back-to-back by itself (each ball waits for
+//                        the flywheel to recover, so all 4 fly the same).
+//                        Takes ~3-4 s -- hold still. Press R1 again to cancel.
+//   L1 hold              spit / unjam (reverse; also cancels a volley) --
+//                        use it the moment a 5th ball gets in (G407: never
+//                        hold more than 4)
 //   Cross                pre-spin on/off (drive to the wall already at speed)
 //   D-pad up / down      shooting spot: WALL / ONE TILE
 //   D-pad left / right   trim that spot's speed -1% / +1%
@@ -41,6 +44,10 @@ public class MeetOneTeleOp extends LinearOpMode {
     private static final double PRECISION_SCALE = 0.35;
     private static final double TRIGGER_PRESSED = 0.5;
     private static final double TRIM_STEP = 0.01;
+
+    // Gate pulses per R1 press: 4 balls + 1 spare in case one didn't make it
+    // through on its pulse (an empty pulse costs ~0.5 s).
+    private static final int VOLLEY_PULSES = 5;
 
     private enum Light { OFF, RED, YELLOW, GREEN }
 
@@ -66,7 +73,7 @@ public class MeetOneTeleOp extends LinearOpMode {
         telemetry.addData("WALL / ONE TILE", "%.0f%% / %.0f%%",
                 100 * presets.get(ShooterPresets.Spot.WALL), 100 * presets.get(ShooterPresets.Spot.ONE_TILE));
         if (!ballPath.hasGate()) telemetry.addLine("WARNING: no 'shooter_gate' servo in the config!");
-        telemetry.addLine("Ready. R2 intake, R1 shoot, L1 spit.");
+        telemetry.addLine("Ready. R2 intake, R1 shoot all (press once), L1 spit.");
         telemetry.update();
 
         waitForStart();
@@ -89,26 +96,30 @@ public class MeetOneTeleOp extends LinearOpMode {
             }
             if (gamepad1.crossWasPressed()) preSpin = !preSpin;
 
-            // ---- Flywheel ----
-            boolean shoot = gamepad1.right_bumper;
-            if (shoot || preSpin) {
+            // ---- Ball path: spit beats a volley beats intake ----
+            boolean wasVolleying = ballPath.isVolleyActive();
+            if (gamepad1.rightBumperWasPressed()) {
+                if (wasVolleying) {
+                    ballPath.setMode(BallPath.Mode.STOP);      // second press = cancel
+                } else {
+                    ballPath.startVolley(VOLLEY_PULSES);
+                }
+            }
+            if (gamepad1.left_bumper) {
+                ballPath.setMode(BallPath.Mode.SPIT);          // also cancels a volley
+            } else if (!ballPath.isVolleyActive()) {
+                ballPath.setMode(gamepad1.right_trigger > TRIGGER_PRESSED ? BallPath.Mode.INTAKE : BallPath.Mode.STOP);
+            }
+
+            // ---- Flywheel: runs during a volley, or all the time with pre-spin ----
+            if (ballPath.isVolleyActive() || preSpin) {
                 flywheel.setTarget(presets.get(spot));
             } else {
                 flywheel.stop();
             }
             flywheel.update();
-
-            // ---- Ball path: spit beats shoot beats intake ----
-            if (gamepad1.left_bumper) {
-                ballPath.setMode(BallPath.Mode.SPIT);
-            } else if (shoot) {
-                ballPath.setMode(BallPath.Mode.SHOOT);
-            } else if (gamepad1.right_trigger > TRIGGER_PRESSED) {
-                ballPath.setMode(BallPath.Mode.INTAKE);
-            } else {
-                ballPath.setMode(BallPath.Mode.STOP);
-            }
             ballPath.update(flywheel.isReady());
+            if (wasVolleying && !ballPath.isVolleyActive()) gamepad1.rumble(200);   // volley over
 
             // ---- Driver feedback ----
             setLight(!flywheel.isSpinning() ? Light.RED : flywheel.isReady() ? Light.GREEN : Light.YELLOW);
@@ -133,7 +144,12 @@ public class MeetOneTeleOp extends LinearOpMode {
             if (flywheel.isEncoderFailed()) telemetry.addLine("FLYWHEEL ENCODER FAIL - running open loop");
             if (flywheel.isMaxedOut()) telemetry.addLine("FLYWHEEL MAXED OUT - lower the speed or re-measure MAX_TICKS_PER_SEC");
             telemetry.addData("Pre-spin", preSpin ? "ON" : "off");
-            telemetry.addData("Ball path", "%s, gate %s", ballPath.getMode(), ballPath.isGateOpen() ? "OPEN" : "shut");
+            if (ballPath.isVolleyActive()) {
+                telemetry.addData("SHOOTING", "%d of %d fired%s", ballPath.getShotsFired(), ballPath.getVolleySize(),
+                        flywheel.isReady() ? "" : " (waiting for speed)");
+            } else {
+                telemetry.addData("Ball path", "%s, gate %s", ballPath.getMode(), ballPath.isGateOpen() ? "OPEN" : "shut");
+            }
             telemetry.addData("Battery", "%.1f V", flywheel.getVoltage());
             telemetry.update();
         }
