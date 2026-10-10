@@ -4,6 +4,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import org.firstinspires.ftc.teamcode.hardware.MecanumDrive;
+
 // Drives exactly one drive motor at a time, so each wheel's true rotation
 // direction can be confirmed with zero ambiguity from mecanum mixing math.
 // Use this instead of BasicTeleOp when diagnosing "which wheel is
@@ -29,18 +31,20 @@ public class WheelDirectionTest extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRight = hardwareMap.get(DcMotor.class, "back_right_drive");
 
-        // Apply the SAME direction settings as BasicTeleOp, so this test
-        // reflects what driving will actually do -- if a wheel still
-        // looks wrong here, fix it in both files together.
-        frontLeft.setDirection(DcMotor.Direction.REVERSE);
-        backLeft.setDirection(DcMotor.Direction.REVERSE);
+        // Apply the SAME direction settings as hardware/MecanumDrive (used by
+        // the meet-1 TeleOp and autos), so this test reflects what driving
+        // will actually do -- if a wheel looks wrong here, fix it there.
+        frontLeft.setDirection(MecanumDrive.FRONT_LEFT_DIRECTION);
+        frontRight.setDirection(MecanumDrive.FRONT_RIGHT_DIRECTION);
+        backLeft.setDirection(MecanumDrive.BACK_LEFT_DIRECTION);
+        backRight.setDirection(MecanumDrive.BACK_RIGHT_DIRECTION);
 
         for (DcMotor motor : new DcMotor[]{frontLeft, frontRight, backLeft, backRight}) {
             motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
 
-        telemetry.addLine("Y=frontLeft  B=frontRight  X=backLeft  A=backRight");
+        telemetry.addLine("Triangle(Y)=frontLeft  Circle(B)=frontRight  Square(X)=backLeft  Cross(A)=backRight");
         telemetry.addLine("Hold a button. That wheel should spin the direction");
         telemetry.addLine("that drives the robot FORWARD.");
         telemetry.update();
