@@ -22,12 +22,14 @@ import org.firstinspires.ftc.teamcode.hardware.SavedNumber;
 //   Right stick X        turn
 //   L2 hold              slow mode
 //   R2 hold              intake. Outtake OFF: shuts the gate, balls wait at
-//                        it. Outtake ON: leaves the gate alone -- open it
-//                        with Circle and R2 feeds balls straight through.
+//                        it. Outtake ON: leaves the gate alone (it's open
+//                        once the outtake is up to speed), so R2 feeds
+//                        balls straight through.
 //   L1 hold              spit / unjam (reverse) -- use it if a 5th ball
 //                        gets in (G407: never hold more than 4). Same gate
 //                        rule as R2.
-//   Cross                outtake on / off
+//   Cross                outtake on / off. Once it's up to speed (lightbar
+//                        green) the gate opens by itself.
 //   R1 hold              SHOOT: turns the outtake on if it's off, waits
 //                        SPINUP_S for it to get to speed, then opens the
 //                        gate and feeds balls for as long as it's held
@@ -95,6 +97,7 @@ public class TempTeleOp extends LinearOpMode {
         String saveNote = "saved on hub";
         boolean outtakeOn = false;
         boolean gateHeldOpen = false;
+        boolean wasReady = false;
         String gateNote = "";
         ElapsedTime spinTimer = new ElapsedTime();
 
@@ -143,12 +146,14 @@ public class TempTeleOp extends LinearOpMode {
             outtake.setPower(outtakeOn ? Range.clip(power * NOMINAL_VOLTAGE / voltage, 0, 1) : 0);
 
             // ---- Ball path: spit beats shoot beats intake ----
-            // Gate: Circle opens/shuts it. Outtake off -> intake or spit
-            // shuts it too; outtake on -> only Circle does. R1 opens it
-            // while held.
+            // Gate: opens by itself when the outtake gets up to speed, and
+            // Circle opens/shuts it. Outtake off -> intake or spit shuts it
+            // too; outtake on -> only Circle does. R1 opens it while held.
             boolean intakeHeld = gamepad1.right_trigger > TRIGGER_PRESSED;
             boolean spitHeld = gamepad1.left_bumper;
             boolean feeding = shootHeld && ready && !spitHeld;
+            if (ready && !wasReady) gateHeldOpen = true;   // outtake just got up to speed
+            wasReady = ready;
             if (gamepad1.circleWasPressed()) gateHeldOpen = !gateHeldOpen;
             if (!outtakeOn && (intakeHeld || spitHeld)) gateHeldOpen = false;
 
