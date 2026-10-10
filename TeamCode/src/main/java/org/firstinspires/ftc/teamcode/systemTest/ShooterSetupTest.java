@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.hardware.BallPath;
+import org.firstinspires.ftc.teamcode.hardware.Flywheel;
 
 // Finds the numbers the meet-1 shooter code needs. Write the results into
 // hardware/Flywheel.java and hardware/BallPath.java.
@@ -33,13 +34,14 @@ public class ShooterSetupTest extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        DcMotorEx flywheel = hardwareMap.get(DcMotorEx.class, "launcher_pollen");
-        flywheel.setDirection(DcMotor.Direction.REVERSE);   // same as Flywheel.java
+        DcMotorEx flywheel = hardwareMap.get(DcMotorEx.class, Flywheel.MOTOR_NAME);
+        flywheel.setDirection(Flywheel.DIRECTION);
         flywheel.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         flywheel.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        DcMotor intake = hardwareMap.get(DcMotor.class, "intake");
+        DcMotor intake = hardwareMap.get(DcMotor.class, BallPath.INTAKE_NAME);
+        intake.setDirection(BallPath.INTAKE_DIRECTION);
         Servo gate = hardwareMap.tryGet(Servo.class, "shooter_gate");
 
         double gatePosition = BallPath.GATE_CLOSED;

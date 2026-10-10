@@ -26,12 +26,12 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 // Call update() every loop.
 public class BallPath {
 
-    private static final String INTAKE_NAME = "intake";
+    public static final String INTAKE_NAME = "intake";
     private static final String GATE_NAME = "shooter_gate";
 
     // TODO: VERIFY on the robot: positive power must pull balls IN and UP
     // the ramp. Flip to REVERSE if it spits them out.
-    private static final DcMotor.Direction INTAKE_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction INTAKE_DIRECTION = DcMotor.Direction.FORWARD;
 
     public static final double INTAKE_POWER = 1.0;
     // While shooting: pushes the next ball up against the gate.

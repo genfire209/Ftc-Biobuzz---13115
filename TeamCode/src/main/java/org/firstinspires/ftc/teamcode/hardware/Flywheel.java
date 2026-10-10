@@ -25,11 +25,12 @@ import com.qualcomm.robotcore.util.Range;
 // type chosen in the robot config doesn't matter. Call update() every loop.
 public class Flywheel {
 
-    private static final String MOTOR_NAME = "launcher_pollen";
+    public static final String MOTOR_NAME = "launcher_pollen";
 
-    // Bench test (TransferLauncherTest, 2026-10-04): REVERSE spins it the
-    // right way. TODO: VERIFY on the robot that a ball goes OUT.
-    private static final DcMotor.Direction DIRECTION = DcMotor.Direction.REVERSE;
+    // Bench tests (TransferLauncherTest 2026-10-04; Single Wheel Test
+    // 2026-10-10, where FORWARD spun the outtake wheel backward): REVERSE
+    // spins it the right way. TODO: VERIFY on the robot that a ball goes OUT.
+    public static final DcMotor.Direction DIRECTION = DcMotor.Direction.REVERSE;
 
     // TODO: MEASURE with systemTest/ShooterSetupTest: highest ticks/s at full
     // power with a charged battery and no ball. Fraction 1.0 = this speed.
