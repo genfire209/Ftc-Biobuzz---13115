@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -46,6 +47,8 @@ import org.firstinspires.ftc.teamcode.hardware.SavedNumber;
 //
 // Lightbar: red = outtake off, yellow = spinning up, green = ready.
 // Rumble: 2 blips at 0:30 left, long at 0:15 (go park in the LOADING ZONE).
+// Meet-1 robot only (no turret, no top roller): replaced by Nemesis TeleOp.
+@Disabled
 @TeleOp(name = "TEMP TeleOp (simple)", group = "Meet 1")
 public class TempTeleOp extends LinearOpMode {
 

@@ -9,10 +9,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.field.FieldConstants;
 import org.firstinspires.ftc.teamcode.field.FieldConstants.Alliance;
 import org.firstinspires.ftc.teamcode.hardware.BallPath;
-import org.firstinspires.ftc.teamcode.hardware.Flywheel;
+import org.firstinspires.ftc.teamcode.hardware.CameraTilt;
 import org.firstinspires.ftc.teamcode.hardware.MecanumDrive;
 import org.firstinspires.ftc.teamcode.hardware.Odometry;
+import org.firstinspires.ftc.teamcode.hardware.Outtake;
 import org.firstinspires.ftc.teamcode.hardware.ShooterPresets;
+import org.firstinspires.ftc.teamcode.hardware.Turret;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -123,7 +125,10 @@ public abstract class MeetOneAutoBase extends OpMode {
     private enum Step { DELAY, TO_SHOOT_SPOT, FIRING, ROUTE, BLIND_LEAVE, DONE }
 
     private final MecanumDrive drive = new MecanumDrive();
-    private final Flywheel flywheel = new Flywheel();
+    // Flywheel + the Nemesis top roller (just the flywheel on the meet-1 robot).
+    private final Outtake flywheel = new Outtake();
+    private final Turret turret = new Turret();
+    private final CameraTilt tilt = new CameraTilt();
     private final BallPath ballPath = new BallPath();
     private final Odometry odometry = new Odometry();
     private final ShooterPresets presets = new ShooterPresets();
@@ -151,7 +156,13 @@ public abstract class MeetOneAutoBase extends OpMode {
         flywheel.init(hardwareMap);
         ballPath.init(hardwareMap);
         odometry.init(hardwareMap);
+        turret.init(hardwareMap);
+        tilt.init(hardwareMap);
         presets.load();
+        // Nemesis: the turret faces front for the whole auto (we shoot
+        // facing the HIVE, like meet 1), the Limelight at its saved tilt.
+        turret.goFront();
+        tilt.holdSavedPosition();
         start = at(shootPreload ? RED_SHOOT_START : RED_PARK_ONLY_START);
         initTimer.reset();
     }

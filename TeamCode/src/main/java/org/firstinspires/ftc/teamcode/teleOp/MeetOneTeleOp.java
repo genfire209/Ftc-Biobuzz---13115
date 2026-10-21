@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Gamepad;
@@ -34,6 +35,8 @@ import org.firstinspires.ftc.teamcode.hardware.ShooterPresets;
 //
 // Shoot from the WALL spot: back against the audience or far wall,
 // centered on our HIVE, facing the upward CELL.
+// Meet-1 robot only (no turret, no top roller): replaced by Nemesis TeleOp.
+@Disabled
 @TeleOp(name = "Meet 1 TeleOp", group = "teleOp")
 public class MeetOneTeleOp extends LinearOpMode {
 

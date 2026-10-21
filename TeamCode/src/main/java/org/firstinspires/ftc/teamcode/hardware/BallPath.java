@@ -6,9 +6,13 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-// Everything between the floor and the flywheel on the meet-1 robot:
-//   - "intake" (Expansion Hub motor port 3, goBILDA 1150 RPM): ONE motor
-//     runs the front vector wheels AND the ramp rollers.
+// Everything between the floor and the flywheel:
+//   - "intake" (Expansion Hub motor port 3, goBILDA 1150 RPM). On the meet-1
+//     robot this ONE motor ran the front wheels AND the ramp; on the Nemesis
+//     turret robot it runs the front intake only.
+//   - "ball_path" (Expansion Hub motor port 2, Nemesis only, optional): the
+//     curved ramp + rollers up to the turret. It runs whenever the intake
+//     motor does, same way (in, feed or spit).
 //   - "shooter_gate" (Control Hub servo port 1): a stopper that holds the
 //     balls back from the flywheel until it's time to shoot.
 //
@@ -21,18 +25,23 @@ import com.qualcomm.robotcore.util.Range;
 // letting all four through would slow the single flywheel and drop the
 // later ones short.
 //
-// The ball count is a count of gate pulses -- there's no ball sensor, so
-// the driver is responsible for never holding more than 4 (G407).
+// getShotsFired() counts gate pulses, not balls. The Nemesis robot counts
+// the balls it holds with its color sensors (BallCounter); without them the
+// driver is responsible for never holding more than 4 (G407).
 //
 // Call update() every loop.
 public class BallPath {
 
     public static final String INTAKE_NAME = "intake";
+    public static final String BALL_PATH_NAME = "ball_path";
     private static final String GATE_NAME = "shooter_gate";
 
     // TODO: VERIFY on the robot: positive power must pull balls IN and UP
     // the ramp. Flip to REVERSE if it spits them out.
     public static final DcMotor.Direction INTAKE_DIRECTION = DcMotor.Direction.FORWARD;
+    // TODO: VERIFY on the robot: positive power must carry balls UP the ramp
+    // toward the turret.
+    public static final DcMotor.Direction BALL_PATH_DIRECTION = DcMotor.Direction.FORWARD;
 
     public static final double INTAKE_POWER = 1.0;
     // While shooting: pushes the next ball up against the gate.
@@ -47,9 +56,11 @@ public class BallPath {
     // Long enough for one ball to get past the gate, short enough that the
     // next one doesn't follow it.
     public static final double OPEN_PULSE_S = 0.25;
-    public static final String GATE_CLOSED_FILE = "meet1_gate_closed";
-    public static final String GATE_OPEN_FILE = "meet1_gate_open";
-    public static final String OPEN_PULSE_FILE = "meet1_gate_pulse_s";
+    // Nemesis files: its gate is a different servo and arm, so the meet-1
+    // numbers (meet1_gate_*) would put it in the wrong place.
+    public static final String GATE_CLOSED_FILE = "nemesis_gate_closed";
+    public static final String GATE_OPEN_FILE = "nemesis_gate_open";
+    public static final String OPEN_PULSE_FILE = "nemesis_gate_pulse_s";
     // Shortest time the gate stays shut between balls.
     public static final double MIN_CLOSED_S = 0.30;
 
@@ -61,6 +72,7 @@ public class BallPath {
     public enum Mode { STOP, INTAKE, SPIT, MANUAL, SHOOT }
 
     private DcMotor intake;
+    private DcMotor ballPath;
     private Servo gate;
 
     private double gateClosed = GATE_CLOSED;
@@ -71,6 +83,7 @@ public class BallPath {
     private double manualIntakePower = 0;
     private boolean manualGateOpen = false;
     private boolean gateOpen = false;
+    private double intakePower = 0;
     private int shotsFired = 0;
     private int volleySize = 0;
     private final ElapsedTime gateTimer = new ElapsedTime();
@@ -81,6 +94,13 @@ public class BallPath {
         intake.setDirection(INTAKE_DIRECTION);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        ballPath = hw.tryGet(DcMotor.class, BALL_PATH_NAME);
+        if (ballPath != null) {
+            ballPath.setDirection(BALL_PATH_DIRECTION);
+            ballPath.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            ballPath.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        }
 
         gateClosed = savedGateClosed();
         gateOpenPosition = savedGateOpen();
@@ -127,15 +147,15 @@ public class BallPath {
     public void update(boolean flywheelReady) {
         switch (mode) {
             case INTAKE:
-                intake.setPower(INTAKE_POWER);
+                setMotors(INTAKE_POWER);
                 closeGate();
                 break;
             case SPIT:
-                intake.setPower(SPIT_POWER);
+                setMotors(SPIT_POWER);
                 closeGate();
                 break;
             case MANUAL:
-                intake.setPower(manualIntakePower);
+                setMotors(manualIntakePower);
                 if (!manualGateOpen) {
                     closeGate();
                 } else if (!gateOpen) {
@@ -143,12 +163,12 @@ public class BallPath {
                 }
                 break;
             case SHOOT:
-                intake.setPower(FEED_POWER);
+                setMotors(FEED_POWER);
                 if (gateOpen) {
                     if (gateTimer.seconds() > openPulseS) closeGate();
                 } else if (shotsFired >= volleySize || volleyTimer.seconds() > VOLLEY_TIMEOUT_S) {
                     mode = Mode.STOP;            // volley finished
-                    intake.setPower(0);
+                    setMotors(0);
                 } else if (flywheelReady && gateTimer.seconds() > MIN_CLOSED_S) {
                     openGate();
                     shotsFired++;
@@ -156,7 +176,7 @@ public class BallPath {
                 break;
             case STOP:
             default:
-                intake.setPower(0);
+                setMotors(0);
                 closeGate();
                 break;
         }
@@ -185,6 +205,11 @@ public class BallPath {
 
     public boolean hasGate() { return gate != null; }
 
+    public boolean hasBallPathMotor() { return ballPath != null; }
+
+    // Last power sent to the intake (+ = in, - = out).
+    public double getIntakePower() { return intakePower; }
+
     // Gate pulses in the current/last volley -- one ball per pulse if the
     // gate timing is right.
     public int getShotsFired() { return shotsFired; }
@@ -193,8 +218,14 @@ public class BallPath {
 
     public void stop() {
         mode = Mode.STOP;
-        intake.setPower(0);
+        setMotors(0);
         closeGate();
+    }
+
+    private void setMotors(double power) {
+        intakePower = power;
+        intake.setPower(power);
+        if (ballPath != null) ballPath.setPower(power);
     }
 
     private void openGate() {

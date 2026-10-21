@@ -7,8 +7,10 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-// The meet-1 shooter flywheel: one Matrix 12V motor ("launcher_pollen",
-// Expansion Hub motor port 0, encoder cable in encoder port 0).
+// One shooter wheel driven by one motor with an encoder. The no-argument
+// constructor is the main flywheel, "launcher_pollen" (Expansion Hub motor
+// port 0). The Nemesis turret has a second motor for its top roller -- see
+// Outtake, which runs both.
 //
 // Speeds are a FRACTION OF FULL SPEED (0..1), so the same preset numbers
 // work whether or not the encoder is working:
@@ -32,8 +34,10 @@ public class Flywheel {
     // differently and needed REVERSE.)
     public static final DcMotor.Direction DIRECTION = DcMotor.Direction.FORWARD;
 
-    // TODO: MEASURE with systemTest/ShooterSetupTest: highest ticks/s at full
-    // power with a charged battery and no ball. Fraction 1.0 = this speed.
+    // TODO: MEASURE with systemTest/NemesisSetupTest (OUTTAKE page): highest
+    // ticks/s at full power with a charged battery and no ball. Fraction 1.0
+    // = this speed. (A 6000 RPM goBILDA bare motor's encoder gives about
+    // 2800 ticks/s with no load.)
     public static final double MAX_TICKS_PER_SEC = 2500.0;
 
     // Battery voltage the feed-forward is scaled to.
@@ -64,6 +68,10 @@ public class Flywheel {
     // Reading the battery takes a hub round trip, so not every loop.
     private static final double VOLTAGE_READ_PERIOD_S = 0.25;
 
+    private final String motorName;
+    private final DcMotor.Direction direction;
+    private final double maxTicksPerSec;
+
     private DcMotorEx motor;
     private VoltageSensor battery;
 
@@ -79,9 +87,33 @@ public class Flywheel {
     private final ElapsedTime voltageTimer = new ElapsedTime();
     private final ElapsedTime unsaturatedTimer = new ElapsedTime();
 
+    // The main flywheel ("launcher_pollen").
+    public Flywheel() {
+        this(MOTOR_NAME, DIRECTION, MAX_TICKS_PER_SEC);
+    }
+
+    public Flywheel(String motorName, DcMotor.Direction direction, double maxTicksPerSec) {
+        this.motorName = motorName;
+        this.direction = direction;
+        this.maxTicksPerSec = maxTicksPerSec;
+    }
+
     public void init(HardwareMap hw) {
-        motor = hw.get(DcMotorEx.class, MOTOR_NAME);
-        motor.setDirection(DIRECTION);
+        setUp(hw.get(DcMotorEx.class, motorName), hw);
+    }
+
+    // For a motor that may not be in the config: false (and nothing else
+    // works) if it isn't.
+    public boolean initIfPresent(HardwareMap hw) {
+        DcMotorEx found = hw.tryGet(DcMotorEx.class, motorName);
+        if (found == null) return false;
+        setUp(found, hw);
+        return true;
+    }
+
+    private void setUp(DcMotorEx found, HardwareMap hw) {
+        motor = found;
+        motor.setDirection(direction);
         motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         motor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -113,7 +145,7 @@ public class Flywheel {
         // abs(): the encoder's polarity on this motor is unverified, and the
         // flywheel only ever spins one way.
         measuredTicksPerSec = Math.abs(motor.getVelocity());
-        double measured = measuredTicksPerSec / MAX_TICKS_PER_SEC;
+        double measured = measuredTicksPerSec / maxTicksPerSec;
 
         if (target <= 0) {
             power = 0;
@@ -159,7 +191,7 @@ public class Flywheel {
 
     public double getTarget() { return target; }
 
-    public double getMeasuredFraction() { return measuredTicksPerSec / MAX_TICKS_PER_SEC; }
+    public double getMeasuredFraction() { return measuredTicksPerSec / maxTicksPerSec; }
 
     public double getMeasuredTicksPerSec() { return measuredTicksPerSec; }
 

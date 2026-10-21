@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.field.FieldConstants;
 // waste balls): see MeetOneAutoBase. Start with the left side on the blue
 // alliance wall, just short of the LOADING ZONE on its middle-of-the-field
 // side. Keeps its 4 POLLEN.
-@Autonomous(name = "BLUE Leave+Park (no shoot)", group = "Meet 1", preselectTeleOp = "Meet 1 TeleOp")
+@Autonomous(name = "BLUE Leave+Park (no shoot)", group = "Meet 1", preselectTeleOp = "Nemesis TeleOp")
 public class MeetOneBluePark extends MeetOneAutoBase {
     public MeetOneBluePark() {
         alliance = FieldConstants.Alliance.BLUE;

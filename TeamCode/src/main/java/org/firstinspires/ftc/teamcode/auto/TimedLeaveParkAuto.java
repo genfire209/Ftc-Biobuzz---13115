@@ -6,8 +6,10 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.teamcode.hardware.CameraTilt;
 import org.firstinspires.ftc.teamcode.hardware.MecanumDrive;
 import org.firstinspires.ftc.teamcode.hardware.SavedNumber;
+import org.firstinspires.ftc.teamcode.hardware.Turret;
 
 // TIMED LEAVE + PARK, for a robot with no odometry pods: it drives on
 // timers only, so the same program works on either alliance.
@@ -27,7 +29,7 @@ import org.firstinspires.ftc.teamcode.hardware.SavedNumber;
 //
 // Drive power is scaled by battery voltage so the distance stays about the
 // same on a fresh or a tired battery.
-@Autonomous(name = "TIMED Leave+Park (no pods)", group = "Meet 1", preselectTeleOp = "TEMP TeleOp (simple)")
+@Autonomous(name = "TIMED Leave+Park (no pods)", group = "Meet 1", preselectTeleOp = "Nemesis TeleOp")
 public class TimedLeaveParkAuto extends LinearOpMode {
 
     private static final double DRIVE_POWER = 0.30;
@@ -53,6 +55,13 @@ public class TimedLeaveParkAuto extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         drive.init(hardwareMap);
+        // Nemesis: turret faces front, Limelight at its saved tilt.
+        Turret turret = new Turret();
+        turret.init(hardwareMap);
+        turret.goFront();
+        CameraTilt tilt = new CameraTilt();
+        tilt.init(hardwareMap);
+        tilt.holdSavedPosition();
         VoltageSensor battery = hardwareMap.voltageSensor.iterator().hasNext()
                 ? hardwareMap.voltageSensor.iterator().next() : null;
 

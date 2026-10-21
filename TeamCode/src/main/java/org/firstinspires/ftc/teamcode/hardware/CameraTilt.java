@@ -9,14 +9,24 @@ import com.qualcomm.robotcore.util.Range;
 // vision/HiveRangeFinder.java) even though the CELL sits well above
 // robot height.
 //
-// Hardware not built yet: servo name and the angle<->position mapping
-// are placeholders -- TODO: MEASURE once the tilt mount exists (point
-// the camera at a couple of known angles, record the servo positions
-// that produced them, and fit the constants below).
+// On the Nemesis robot: a goBILDA servo (Control Hub servo port 0) on the
+// printed tilt mount from the belt-drive robot. For now the Limelight just
+// holds one saved tilt (holdSavedPosition), set on the Nemesis Setup Test
+// TILT page so the HIVE tags are in view from where we shoot.
+//
+// The angle<->position mapping below is still a placeholder (only
+// HiveAimer uses it) -- TODO: MEASURE: point the camera at a couple of
+// known angles, record the servo positions, and fit the constants below.
+//
+// Optional: without the servo in the config, hasServo() is false and the
+// rest does nothing.
 public class CameraTilt {
 
     // TODO: DECIDE -- device name, must match Driver Hub config.
     private static final String SERVO_NAME = "camera_tilt";
+
+    public static final String SAVED_POSITION_FILE = "nemesis_ll_tilt";
+    private static final double DEFAULT_POSITION = 0.5;
 
     // TODO: MEASURE -- servo position (0.0-1.0) at each tilt extreme, and
     // the actual camera pitch angle (degrees) each one corresponds to.
@@ -29,7 +39,22 @@ public class CameraTilt {
     private double targetAngleDeg = 0.0;
 
     public void init(HardwareMap hw) {
-        servo = hw.get(Servo.class, SERVO_NAME);
+        servo = hw.tryGet(Servo.class, SERVO_NAME);
+    }
+
+    public boolean hasServo() { return servo != null; }
+
+    public static double savedPosition() {
+        return Range.clip(SavedNumber.load(SAVED_POSITION_FILE, DEFAULT_POSITION), 0, 1);
+    }
+
+    // The tilt saved on the hub by Nemesis Setup Test.
+    public void holdSavedPosition() {
+        setPosition(savedPosition());
+    }
+
+    public void setPosition(double position) {
+        if (servo != null) servo.setPosition(Range.clip(position, 0, 1));
     }
 
     // Last commanded pitch (degrees). The servo has no position feedback,
@@ -44,6 +69,6 @@ public class CameraTilt {
         targetAngleDeg = clampedAngle;
         double t = (clampedAngle - MIN_ANGLE_DEG) / (MAX_ANGLE_DEG - MIN_ANGLE_DEG);
         double position = POSITION_AT_MIN_ANGLE + t * (POSITION_AT_MAX_ANGLE - POSITION_AT_MIN_ANGLE);
-        servo.setPosition(Range.clip(position, 0.0, 1.0));
+        if (servo != null) servo.setPosition(Range.clip(position, 0.0, 1.0));
     }
 }

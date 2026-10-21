@@ -38,7 +38,20 @@ public class HiveVision {
     private double targetTyDeg;
 
     public void init(HardwareMap hw) {
-        limelight = hw.get(Limelight3A.class, LIMELIGHT_NAME);
+        start(hw.get(Limelight3A.class, LIMELIGHT_NAME));
+    }
+
+    // For a robot that may not have the Limelight plugged in / configured:
+    // false (and nothing is seen) if it isn't.
+    public boolean initIfPresent(HardwareMap hw) {
+        Limelight3A found = hw.tryGet(Limelight3A.class, LIMELIGHT_NAME);
+        if (found == null) return false;
+        start(found);
+        return true;
+    }
+
+    private void start(Limelight3A found) {
+        limelight = found;
         limelight.setPollRateHz(100);
         limelight.pipelineSwitch(APRILTAG_PIPELINE_INDEX);
         limelight.start();
@@ -51,7 +64,7 @@ public class HiveVision {
     // Grabs the newest frame and averages tx/ty over the target CELL's tags
     // seen in it (averaging the 4-tag cluster steadies the reading).
     public void update() {
-        LLResult result = limelight.getLatestResult();
+        LLResult result = limelight == null ? null : limelight.getLatestResult();
         latest = (result != null && result.getStaleness() < MAX_STALENESS_MS) ? result : null;
 
         double sumTx = 0, sumTy = 0;
@@ -74,6 +87,18 @@ public class HiveVision {
 
     // Degrees; positive = tag is above the crosshair.
     public double getTargetTyDeg() { return targetTyDeg; }
+
+    // How many of the given tags are in the current frame.
+    public int countVisible(int[] tags) {
+        int n = 0;
+        for (LLResultTypes.FiducialResult f : fiducials()) {
+            if (contains(tags, f.getFiducialId())) n++;
+        }
+        return n;
+    }
+
+    // Any AprilTag at all in the current frame (for setting the tilt).
+    public int countAllVisible() { return fiducials().size(); }
 
     // True if any of the given tags is in the current frame (used to spot
     // the other CELL coming up after a TIP).
