@@ -57,8 +57,8 @@ public abstract class MeetOneAutoBase extends OpMode {
     // of the four wheel axles). TODO: MEASURE on the real robot -- the
     // Matrix motor at the back may stick out further than the CAD's motor.
     private static final double FRONT_IN = 8.1;   // center -> intake edge
-    private static final double BACK_IN = 7.2;    // center -> shooter end
-    private static final double LEFT_IN = 6.4;    // center -> left side (battery)
+    private static final double BACK_IN = 6.25;   // center -> back (measured 2026-10-24)
+    private static final double LEFT_IN = 5.5;    // center -> left side (measured 2026-10-24)
 
     private static final double FACING_FAR_WALL = Math.toRadians(90);
 

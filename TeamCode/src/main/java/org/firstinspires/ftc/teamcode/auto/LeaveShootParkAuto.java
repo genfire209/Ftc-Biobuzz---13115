@@ -53,9 +53,9 @@ public class LeaveShootParkAuto extends LinearOpMode {
     private static final double LZ_X_MAX = 12.9;
     private static final double LZ_NEAR_Y = 101.0, LZ_FAR_Y = 113.0;
     private static final double WALL_IN = 1.3;
-    // Robot, center (between the wheels) to its edges. TODO: MEASURE.
-    private static final double BACK_IN = 7.2;
-    private static final double LEFT_IN = 6.4;
+    // Robot, center (between the wheels) to its edges. Measured 2026-10-24.
+    private static final double BACK_IN = 6.25;
+    private static final double LEFT_IN = 5.5;
     private static final double PARK_OVERLAP_IN = 5.0;   // how far inside the zone
 
     private static final double LEAVE_IN = 12.0;
