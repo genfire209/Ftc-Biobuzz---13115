@@ -11,8 +11,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 // drive(1, 0, 0). On the assembled robot (2026-10-10) the drive motors are
 // plugged in left/right mirrored from the original plan: Control Hub port
 // 0 = front RIGHT, 1 = front LEFT, 2 = back RIGHT, 3 = back LEFT. The hub
-// config names match that wiring, so these directions are per real wheel
-// (left side REVERSE, right side FORWARD).
+// config names match that wiring, so these directions are per real wheel.
 public class MecanumDrive {
 
     public static final String FRONT_LEFT_NAME = "front_left_drive";
@@ -20,10 +19,12 @@ public class MecanumDrive {
     public static final String BACK_LEFT_NAME = "back_left_drive";
     public static final String BACK_RIGHT_NAME = "back_right_drive";
 
-    public static final DcMotor.Direction FRONT_LEFT_DIRECTION = DcMotor.Direction.REVERSE;
-    public static final DcMotor.Direction FRONT_RIGHT_DIRECTION = DcMotor.Direction.FORWARD;
-    public static final DcMotor.Direction BACK_LEFT_DIRECTION = DcMotor.Direction.REVERSE;
-    public static final DcMotor.Direction BACK_RIGHT_DIRECTION = DcMotor.Direction.FORWARD;
+    // 2026-10-24, Nemesis robot: with left REVERSE / right FORWARD every wheel
+    // spun backward on Drive Only TeleOp, so all four are flipped.
+    public static final DcMotor.Direction FRONT_LEFT_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction FRONT_RIGHT_DIRECTION = DcMotor.Direction.REVERSE;
+    public static final DcMotor.Direction BACK_LEFT_DIRECTION = DcMotor.Direction.FORWARD;
+    public static final DcMotor.Direction BACK_RIGHT_DIRECTION = DcMotor.Direction.REVERSE;
 
     private DcMotor frontLeft, frontRight, backLeft, backRight;
 

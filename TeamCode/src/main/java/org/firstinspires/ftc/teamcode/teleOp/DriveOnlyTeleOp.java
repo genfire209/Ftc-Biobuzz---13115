@@ -8,11 +8,13 @@ import com.qualcomm.robotcore.exception.RobotCoreException;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorImplEx;
 
+import org.firstinspires.ftc.teamcode.hardware.MecanumDrive;
+
 // Just the four drive wheels: drive, strafe and turn. Uses the Control Hub's
 // motor ports directly, so the robot config doesn't matter.
 //   Control Hub port 1 = front left, 0 = front right, 3 = back left,
-//   2 = back right (same wiring as meet 1, so the same directions as
-//   hardware/MecanumDrive: left side reversed).
+//   2 = back right (same wiring as meet 1). Wheel directions come from
+//   hardware/MecanumDrive, so every drive OpMode agrees.
 //   Left stick      drive / strafe (up = toward the intake)
 //   Right stick X   turn
 //   L2 hold         slow mode
@@ -48,10 +50,10 @@ public class DriveOnlyTeleOp extends LinearOpMode {
             waitForStart();
             return;
         }
-        DcMotor frontLeft = new DcMotorImplEx(ports, FRONT_LEFT_PORT, DcMotor.Direction.REVERSE);
-        DcMotor frontRight = new DcMotorImplEx(ports, FRONT_RIGHT_PORT, DcMotor.Direction.FORWARD);
-        DcMotor backLeft = new DcMotorImplEx(ports, BACK_LEFT_PORT, DcMotor.Direction.REVERSE);
-        DcMotor backRight = new DcMotorImplEx(ports, BACK_RIGHT_PORT, DcMotor.Direction.FORWARD);
+        DcMotor frontLeft = new DcMotorImplEx(ports, FRONT_LEFT_PORT, MecanumDrive.FRONT_LEFT_DIRECTION);
+        DcMotor frontRight = new DcMotorImplEx(ports, FRONT_RIGHT_PORT, MecanumDrive.FRONT_RIGHT_DIRECTION);
+        DcMotor backLeft = new DcMotorImplEx(ports, BACK_LEFT_PORT, MecanumDrive.BACK_LEFT_DIRECTION);
+        DcMotor backRight = new DcMotorImplEx(ports, BACK_RIGHT_PORT, MecanumDrive.BACK_RIGHT_DIRECTION);
         DcMotor[] wheels = {frontLeft, frontRight, backLeft, backRight};
         for (DcMotor wheel : wheels) {
             wheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
