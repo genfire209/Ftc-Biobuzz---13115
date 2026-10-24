@@ -15,8 +15,9 @@ import org.firstinspires.ftc.teamcode.hardware.Turret;
 // timers only, so the same program works on either alliance.
 //
 //   Start: robot's LEFT side touching our alliance wall (the wall the drive
-//   team stands behind), intake facing our LOADING ZONE, front just short
-//   of the zone's tape (starting inside it is illegal, G304E).
+//   team stands behind), SHOOTER (the robot's front since 2026-10-24) facing
+//   our LOADING ZONE, front just short of the zone's tape (starting inside
+//   it is illegal, G304E).
 //   Then it:
 //     1. waits the start delay,
 //     2. strafes right off the wall (LEAVE = not touching the wall, 3),
@@ -80,7 +81,7 @@ public class TimedLeaveParkAuto extends LinearOpMode {
                 saveNote = SavedNumber.save(FORWARD_FILE, forwardS) ? "saved on hub" : "SAVE FAILED";
             }
 
-            telemetry.addLine("LEFT side on our alliance wall, intake facing our LOADING ZONE,");
+            telemetry.addLine("LEFT side on our alliance wall, SHOOTER facing our LOADING ZONE,");
             telemetry.addLine("front just short of the zone tape.");
             telemetry.addData("Start delay (D-pad up/down)", "%.0f s", delayS);
             telemetry.addData("Forward time (D-pad left/right)", "%.1f s  (%s)", forwardS, saveNote);

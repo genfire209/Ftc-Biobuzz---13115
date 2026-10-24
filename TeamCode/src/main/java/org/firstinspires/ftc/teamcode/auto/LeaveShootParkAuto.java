@@ -34,6 +34,7 @@ import org.firstinspires.ftc.teamcode.hardware.ShooterPresets;
 //
 // INIT menu (gamepad 1):
 //   D-pad up/down  start delay          Circle    park on/off
+//   D-pad left/right  shoot OFF / ON (remembered) - OFF = just LEAVE + PARK
 //   Triangle       park in the near / far half of the LOADING ZONE
 //   CALIBRATE (do once): push the robot by hand exactly 1 tile (24 in)
 //     FORWARD then press Cross; push it exactly 1 tile to the RIGHT then press
@@ -61,6 +62,7 @@ public class LeaveShootParkAuto extends LinearOpMode {
 
     // Encoder ticks per inch. Default: goBILDA 312 RPM (537.7 ticks/turn) on
     // a 104 mm wheel, 1:1 belt. Calibrate in INIT (saved on the hub).
+    private static final String SHOOT_FILE = "auto_shoot";              // 1 = shoot, 0 = don't
     private static final String TPI_FWD_FILE = "auto_ticks_per_in_fwd";
     private static final String TPI_STRAFE_FILE = "auto_ticks_per_in_strafe";
     private static final double DEFAULT_TPI = 537.7 / (Math.PI * 104.0 / 25.4);
@@ -146,6 +148,7 @@ public class LeaveShootParkAuto extends LinearOpMode {
         double tpiStrafe = SavedNumber.load(TPI_STRAFE_FILE, DEFAULT_TPI);
         double delayS = 0;
         boolean park = true;
+        boolean shoot = SavedNumber.load(SHOOT_FILE, 1) > 0.5;
         boolean farHalf = true;
         String calNote = "";
         markStart();
@@ -154,6 +157,10 @@ public class LeaveShootParkAuto extends LinearOpMode {
             if (gamepad1.dpadUpWasPressed()) delayS = Math.min(MAX_DELAY_S, delayS + 1);
             if (gamepad1.dpadDownWasPressed()) delayS = Math.max(0, delayS - 1);
             if (gamepad1.circleWasPressed()) park = !park;
+            boolean shootBefore = shoot;
+            if (gamepad1.dpadLeftWasPressed()) shoot = false;
+            if (gamepad1.dpadRightWasPressed()) shoot = true;
+            if (shoot != shootBefore) SavedNumber.save(SHOOT_FILE, shoot ? 1 : 0);
             if (gamepad1.triangleWasPressed()) farHalf = !farHalf;
             double fwdTicks = fwdTicks(), strafeTicks = strafeTicks();
             if (gamepad1.crossWasPressed()) {
@@ -178,6 +185,7 @@ public class LeaveShootParkAuto extends LinearOpMode {
             telemetry.addLine("RED: back on the AUDIENCE wall | BLUE: back on the FAR wall");
             telemetry.addLine("Centered on our HIVE, shooter facing it.");
             telemetry.addData("Start delay (D-pad up/down)", "%.0f s", delayS);
+            telemetry.addData("Shoot (D-pad left/right)", shoot ? "ON - shoots the preloads" : "OFF - LEAVE + PARK only");
             telemetry.addData("Park (Circle)", park ? "YES - LOADING ZONE" : "no");
             telemetry.addData("Park half (Triangle)", farHalf ? "FAR half of the zone" : "NEAR half of the zone");
             telemetry.addData("Shot speed", "%.0f%% (Nemesis TeleOp D-pad sets it)", 100 * presets.get(ShooterPresets.Spot.WALL));
@@ -196,12 +204,12 @@ public class LeaveShootParkAuto extends LinearOpMode {
             sleepActive(delayS);
 
             // 1. LEAVE, with the shooter spinning up on the way
-            if (outtake != null) outtake.setTarget(presets.get(ShooterPresets.Spot.WALL));
+            if (shoot && outtake != null) outtake.setTarget(presets.get(ShooterPresets.Spot.WALL));
             step = "forward (LEAVE)";
             move(LEAVE_IN, 0, tpiFwd, tpiStrafe, outtake);
 
             // 2. shoot the preloads
-            if (outtake != null && feed != null) {
+            if (shoot && outtake != null && feed != null) {
                 step = "shooter getting to speed";
                 ElapsedTime t = new ElapsedTime();
                 while (opModeIsActive() && t.seconds() < SPINUP_MAX_S && !outtake.isReady()) {
