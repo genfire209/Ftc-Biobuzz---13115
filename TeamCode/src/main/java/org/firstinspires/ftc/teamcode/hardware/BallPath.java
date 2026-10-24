@@ -36,9 +36,9 @@ public class BallPath {
     public static final String BALL_PATH_NAME = "ball_path";
     private static final String GATE_NAME = "shooter_gate";
 
-    // TODO: VERIFY on the robot: positive power must pull balls IN and UP
-    // the ramp. Flip to REVERSE if it spits them out.
-    public static final DcMotor.Direction INTAKE_DIRECTION = DcMotor.Direction.FORWARD;
+    // Positive power must pull balls IN. 2026-10-24, Nemesis robot: FORWARD
+    // spun it the wrong way (Single Wheel Test), so REVERSE.
+    public static final DcMotor.Direction INTAKE_DIRECTION = DcMotor.Direction.REVERSE;
     // TODO: VERIFY on the robot: positive power must carry balls UP the ramp
     // toward the turret.
     public static final DcMotor.Direction BALL_PATH_DIRECTION = DcMotor.Direction.FORWARD;
