@@ -53,8 +53,10 @@ public class Constants {
             .distanceUnit(DistanceUnit.INCH)
             // TODO: MEASURE — must match the Pinpoint's name in the Driver Hub config.
             .hardwareMapName("pinpoint")
-            // TODO: MEASURE — depends on which goBILDA pod model is purchased.
-            .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
+            // SWYFT Linear Odometry pods: 4096 counts per turn of a 38 mm wheel,
+            // bench-measured 34.0 counts/mm (same as hardware/Odometry). Pedro
+            // reads this in distanceUnit, so it's counts per INCH here.
+            .customEncoderResolution(34.0 * 25.4)
             // TODO: MEASURE — bench-verify sign by pushing the robot and checking
             // reported X/Y.
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
