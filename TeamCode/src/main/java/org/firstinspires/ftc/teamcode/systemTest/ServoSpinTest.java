@@ -5,7 +5,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
+import com.qualcomm.robotcore.hardware.PwmControl;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 // Tests whatever servo is plugged into Control Hub servo port 0. Like Single
 // Wheel Test, it finds the servo by its port, not its config name.
@@ -14,6 +16,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 // Works for both kinds of servo:
 //   - continuous-rotation servo: the stick sets its speed (centered = stopped).
 //   - normal servo: the stick sets its angle (centered = middle of its range).
+// Uses the full 500-2500 us signal range (some servos need it), and shows the
+// robot battery voltage: servo ports are powered by the battery, not USB.
 @TeleOp(name = "Servo Spin Test", group = "systemTest")
 public class ServoSpinTest extends LinearOpMode {
 
@@ -32,6 +36,12 @@ public class ServoSpinTest extends LinearOpMode {
             return;
         }
         String name = hardwareMap.getNamesOf(found).iterator().next();
+        if (found instanceof PwmControl) {
+            ((PwmControl) found).setPwmRange(new PwmControl.PwmRange(500, 2500));
+            ((PwmControl) found).setPwmEnable();
+        }
+        VoltageSensor battery = hardwareMap.voltageSensor.iterator().hasNext()
+                ? hardwareMap.voltageSensor.iterator().next() : null;
 
         telemetry.addData("Servo", "%s (%s)", name, found.getConnectionInfo());
         telemetry.addLine("Ready. Press play, then move the LEFT joystick up/down.");
@@ -50,6 +60,14 @@ public class ServoSpinTest extends LinearOpMode {
             }
 
             telemetry.addData("Servo", "%s (Control Hub servo port %d)", name, PORT);
+            if (battery != null) {
+                double volts = battery.getVoltage();
+                telemetry.addData("Robot battery", "%.1f V%s", volts,
+                        volts < 9.0 ? "  <- TOO LOW: plug in / switch on the battery (servos get no power)" : "");
+            }
+            if (found instanceof PwmControl) {
+                telemetry.addData("Servo signal", ((PwmControl) found).isPwmEnabled() ? "ON (500-2500 us)" : "OFF");
+            }
             telemetry.addData("Stick", "%.2f", stick);
             telemetry.addData(servo != null ? "Position sent" : "Power sent", "%.2f",
                     servo != null ? position : stick);
