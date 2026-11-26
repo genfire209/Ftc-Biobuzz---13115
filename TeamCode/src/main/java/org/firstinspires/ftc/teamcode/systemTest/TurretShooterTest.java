@@ -20,8 +20,8 @@ import com.qualcomm.robotcore.util.Range;
 //   Right stick, up/down      run the shooter: up = forward, down = backward
 //                             (let go = shooter off). Full stick = the top
 //                             speed set with the buttons below.
-//   Triangle                  top speed +5% (up to 100%)
-//   Cross (X)                 top speed -5% (down to 5%)
+//   Triangle                  top speed +1% (up to 100%)
+//   Cross (X)                 top speed -1% (down to 1%)
 // Start the OpMode with the turret facing FRONT: that spot becomes encoder 0.
 @TeleOp(name = "Turret + Shooter Test", group = "systemTest")
 public class TurretShooterTest extends LinearOpMode {
@@ -36,8 +36,8 @@ public class TurretShooterTest extends LinearOpMode {
     private static final int TURRET_LIMIT_TICKS = 0;
 
     // Each Triangle / Cross press changes the shooter's top speed by this many percent.
-    private static final int SHOOTER_STEP_PERCENT = 5;
-    private static final int SHOOTER_MIN_PERCENT = 5;
+    private static final int SHOOTER_STEP_PERCENT = 1;
+    private static final int SHOOTER_MIN_PERCENT = 1;
 
     @Override
     public void runOpMode() throws InterruptedException {
